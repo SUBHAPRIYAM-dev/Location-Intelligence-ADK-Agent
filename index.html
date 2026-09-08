@@ -12,6 +12,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script>
+      // Gracefully prevent benign Vite development WebSocket disconnection errors from bubbling to the error overlay
+      window.addEventListener('unhandledrejection', function(event) {
+        var reason = event && (event.reason || event);
+        var msg = (reason && (reason.message || reason.stack || reason)) + '';
+        if (
+          msg.includes('WebSocket') ||
+          msg.includes('websocket') ||
+          msg.includes('[vite]') ||
+          msg.includes('closed without opened')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        var msg = (event && (event.message || (event.error && event.error.message))) + '';
+        if (
+          msg.includes('WebSocket') ||
+          msg.includes('websocket') ||
+          msg.includes('[vite]') ||
+          msg.includes('closed without opened')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
