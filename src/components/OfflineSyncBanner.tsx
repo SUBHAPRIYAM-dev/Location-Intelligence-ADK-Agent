@@ -23,7 +23,7 @@ export const OfflineSyncBanner: React.FC<OfflineSyncBannerProps> = ({
   if (!isOffline && offlineQueue.length === 0) return null;
 
   return (
-    <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-200">
+    <div className="shrink-0 bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-200">
       <div className="flex items-center gap-2">
         <WifiOff className="h-4 w-4 text-amber-400 shrink-0" />
         <div>

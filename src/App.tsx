@@ -348,7 +348,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col ${
+    <div className={`h-screen max-h-screen font-sans flex flex-col overflow-hidden ${
       isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
     }`}>
       {/* Offline Sync Banner */}
@@ -384,10 +384,12 @@ export default function App() {
       />
 
       {/* Main Application Content Body */}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 min-h-0 flex flex-col ${
+        currentTab === 'mapWorkspace' ? 'overflow-hidden' : 'overflow-y-auto'
+      }`}>
         {/* TAB 1: Geospatial Map Workspace + Location Intelligence ADK Agent Panel */}
         {currentTab === 'mapWorkspace' && (
-          <div className="flex flex-col h-[calc(100vh-105px)] overflow-hidden">
+          <div className="flex-1 min-h-0 w-full h-full flex flex-col overflow-hidden">
             {/* Mobile & Tablet Segmented View Switcher (< lg) */}
             <div className="lg:hidden flex items-center justify-between px-3 py-1.5 border-b bg-slate-900/90 border-slate-800 text-xs shrink-0">
               <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-800/80 border border-slate-700/60 w-full">
@@ -422,9 +424,9 @@ export default function App() {
             </div>
 
             {/* Viewports container */}
-            <div className="flex-1 flex flex-col lg:flex-row h-[calc(100%-48px)] lg:h-full overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col lg:flex-row h-full w-full overflow-hidden">
               {/* Map Canvas and Layer Engine */}
-              <div className={`relative transition-all duration-300 h-full ${
+              <div className={`relative transition-all duration-300 h-full min-h-0 ${
                 // On mobile/tablet, show only if active or on desktop
                 mobileWorkspaceView === 'map' ? 'flex-1 flex flex-col' : 'hidden lg:flex lg:flex-col'
               } ${
@@ -465,7 +467,7 @@ export default function App() {
               </div>
 
               {/* ADK Agent Command Center Panel */}
-              <div className={`h-full shrink-0 flex flex-col ${
+              <div className={`h-full min-h-0 shrink-0 flex flex-col ${
                 // On mobile/tablet: visible when agent view active
                 mobileWorkspaceView === 'agent' ? 'flex-1 w-full' : 'hidden'
               } ${

@@ -100,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className={`border-b sticky top-0 z-50 transition-colors ${
+    <header className={`border-b shrink-0 z-50 transition-colors ${
       isDarkMode ? 'bg-slate-900/95 backdrop-blur-md border-slate-800 text-slate-100' : 'bg-white/95 backdrop-blur-md border-slate-200 text-slate-900'
     }`}>
       {/* Top Utility Bar */}

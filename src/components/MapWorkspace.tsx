@@ -95,6 +95,27 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const [showConfigDrawer, setShowConfigDrawer] = useState<boolean>(false);
   const [hoveredItem, setHoveredItem] = useState<{ type: 'point' | 'cluster'; data: any; x: number; y: number } | null>(null);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+  // Responsive container measurement via ResizeObserver to dynamically adapt canvas to full screen
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setDimensions({ width, height });
+        }
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   // Simulated live telemetry movement loop
   useEffect(() => {
     if (!isStreaming) return;
@@ -412,7 +433,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     layers, 
     telemetryOffsets, 
     selectedPoint, 
-    isDarkMode
+    isDarkMode,
+    dimensions
   ]);
 
   // Handle Pan & Drag on canvas
@@ -577,9 +599,12 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-145px)] min-h-[480px] sm:min-h-[580px] flex overflow-hidden">
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full flex-1 min-h-0 flex overflow-hidden"
+    >
       {/* Map Canvas Viewport */}
-      <div className="relative flex-1 h-full select-none touch-none">
+      <div className="relative flex-1 min-h-0 w-full h-full select-none touch-none overflow-hidden">
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}
@@ -646,19 +671,22 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
 
         {/* Floating Bottom Left: Zoom & View Navigation Controls */}
-        <div className="absolute bottom-4 left-3 sm:bottom-6 sm:left-4 flex flex-col gap-1.5 z-10">
+        <div className="absolute bottom-4 left-3 sm:bottom-5 sm:left-4 flex flex-col gap-1.5 z-30">
           <button
             id="map-zoom-in-btn"
             onClick={() => setZoom(z => Math.min(18, z + 1))}
-            className="p-2.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-sky-400 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
             title={t.map.zoomIn}
           >
             <ZoomIn className="h-4 w-4" />
           </button>
+          <div className="text-[10px] font-mono font-bold text-center text-sky-400 py-0.5 px-1 bg-slate-950/90 rounded-lg border border-slate-700/80 shadow-md select-none">
+            {zoom}x
+          </div>
           <button
             id="map-zoom-out-btn"
             onClick={() => setZoom(z => Math.max(9, z - 1))}
-            className="p-2.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-sky-400 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
             title={t.map.zoomOut}
           >
             <ZoomOut className="h-4 w-4" />
@@ -669,7 +697,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               setCenter({ lat: 40.742, lng: -73.978 });
               setZoom(13);
             }}
-            className="p-2.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-sky-400 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
             title={t.map.resetView}
           >
             <RotateCcw className="h-4 w-4" />
@@ -677,7 +705,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
 
         {/* Floating Legend / Attribution Indicator (Desktop & Tablet) */}
-        <div className="absolute bottom-4 right-3 sm:bottom-6 sm:right-4 hidden sm:flex items-center gap-2.5 lg:gap-3 px-2.5 sm:px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/85 border-slate-700/80 text-[10px] text-slate-300">
+        <div className="absolute bottom-4 right-3 sm:bottom-5 sm:right-4 hidden sm:flex items-center gap-2.5 lg:gap-3 px-2.5 sm:px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700/80 text-[10px] text-slate-300 z-30">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             <span>EV Grid</span>
