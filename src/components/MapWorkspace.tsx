@@ -44,6 +44,14 @@ interface MapWorkspaceProps {
   onSelectPoint: (pt: SpatialPoint | null) => void;
   onSelectCluster: (cl: ClusterGroup | null) => void;
   onSelectAnomaly: (anom: AnomalyAlert) => void;
+  externalViewportCommand?: {
+    center?: { lat: number; lng: number };
+    zoom?: number;
+    highlightPointId?: string;
+    highlightClusterId?: string;
+    activeLayer?: string;
+    timestamp: number;
+  } | null;
 }
 
 const MIN_ZOOM = 1;
@@ -59,6 +67,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   onSelectPoint,
   onSelectCluster,
   onSelectAnomaly,
+  externalViewportCommand,
 }) => {
   const t = translations[language];
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -118,6 +127,29 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
+
+  // Listen to external commands from ADK Agent or Anomaly Alerts Center
+  useEffect(() => {
+    if (!externalViewportCommand) return;
+    if (externalViewportCommand.center) {
+      setCenter(externalViewportCommand.center);
+    }
+    if (externalViewportCommand.zoom) {
+      setZoom(externalViewportCommand.zoom);
+    }
+    if (externalViewportCommand.activeLayer) {
+      setLayers(prev => ({
+        ...prev,
+        [externalViewportCommand.activeLayer!]: true,
+      }));
+    }
+    if (externalViewportCommand.highlightPointId) {
+      const pt = points.find(p => p.id === externalViewportCommand.highlightPointId);
+      if (pt) {
+        onSelectPoint(pt);
+      }
+    }
+  }, [externalViewportCommand, points, onSelectPoint]);
 
   // Simulated live telemetry movement loop
   useEffect(() => {
@@ -394,6 +426,32 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         ctx.beginPath();
         const baseRing = zoom < 8 ? 10 : 16;
         ctx.arc(coord.x, coord.y, baseRing + Math.sin(Date.now() / 250) * (zoom < 8 ? 2 : 3), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Target focus ring if selected by ADK Agent or operator
+      if (isSelected) {
+        ctx.save();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        const focusRing = (zoom < 8 ? 14 : 22) + Math.sin(Date.now() / 200) * 4;
+        ctx.arc(coord.x, coord.y, focusRing, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Crosshairs
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(coord.x - focusRing - 5, coord.y);
+        ctx.lineTo(coord.x - focusRing + 3, coord.y);
+        ctx.moveTo(coord.x + focusRing - 3, coord.y);
+        ctx.lineTo(coord.x + focusRing + 5, coord.y);
+        ctx.moveTo(coord.x, coord.y - focusRing - 5);
+        ctx.lineTo(coord.x, coord.y - focusRing + 3);
+        ctx.moveTo(coord.x, coord.y + focusRing - 3);
+        ctx.lineTo(coord.x, coord.y + focusRing + 5);
         ctx.stroke();
         ctx.restore();
       }

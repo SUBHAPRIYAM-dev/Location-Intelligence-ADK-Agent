@@ -20,7 +20,8 @@ import { translations } from '../i18n';
 interface AnomalyAlertsCenterProps {
   anomalies: AnomalyAlert[];
   onUpdateAnomalyStatus: (id: string, newStatus: 'active' | 'acknowledged' | 'resolved') => void;
-  onLocateOnMap?: (lat: number, lng: number) => void;
+  onLocateOnMap?: (lat: number, lng: number, label?: string) => void;
+  onInvestigateWithAgent?: (query: string) => void;
   userRole: UserRole;
   language: LanguageCode;
   isDarkMode: boolean;
@@ -30,6 +31,7 @@ export const AnomalyAlertsCenter: React.FC<AnomalyAlertsCenterProps> = ({
   anomalies,
   onUpdateAnomalyStatus,
   onLocateOnMap,
+  onInvestigateWithAgent,
   userRole,
   language,
   isDarkMode,
@@ -247,14 +249,41 @@ export const AnomalyAlertsCenter: React.FC<AnomalyAlertsCenterProps> = ({
               </div>
 
               {/* ADK Agent Root Cause Assessment */}
-              <div className="p-3 rounded-xl bg-sky-950/20 border border-sky-800/30 text-xs space-y-1">
-                <div className="flex items-center gap-1.5 text-sky-400 font-bold text-[11px]">
-                  <Bot className="h-3.5 w-3.5" />
-                  <span>ADK Agent Assessment & Recommendation</span>
+              <div className="p-3.5 rounded-xl bg-sky-950/30 border border-sky-800/40 text-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-sky-400 font-bold text-[11px]">
+                    <Bot className="h-3.5 w-3.5" />
+                    <span>ADK Agent Spatial Diagnostics</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono">
+                    BigQuery + Gemini
+                  </span>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Correlated with real-time BigQuery spatial stream. Recommend immediate dispatch to route relief corridor and trigger automated email notification to on-duty operations lead.
+                  Correlated with real-time BigQuery spatial telemetry stream. Recommend executing spatial buffer analysis, reviewing feeder grid stress, and routing logistics dispatch.
                 </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {onLocateOnMap && (
+                    <button
+                      id="anomaly-locate-map-btn"
+                      onClick={() => onLocateOnMap(selectedAnomaly.lat, selectedAnomaly.lng, selectedAnomaly.title)}
+                      className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-[11px] flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>Locate on Map Workspace</span>
+                    </button>
+                  )}
+                  {onInvestigateWithAgent && (
+                    <button
+                      id="anomaly-agent-investigate-btn"
+                      onClick={() => onInvestigateWithAgent(`Investigate spatial anomaly: ${selectedAnomaly.title} (${selectedAnomaly.category}) at [${selectedAnomaly.lat}, ${selectedAnomaly.lng}] with z-score ${selectedAnomaly.zScore}σ and recommend mitigation.`)}
+                      className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-[11px] flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <Bot className="h-3.5 w-3.5" />
+                      <span>Investigate with ADK Agent</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}

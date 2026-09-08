@@ -28,7 +28,8 @@ import {
   ScheduledReport, 
   AgentMessage, 
   OfflineQueueItem, 
-  LanguageCode 
+  LanguageCode,
+  SpatialAction
 } from './types';
 import { Bot, Map as MapIcon, ChevronRight, ChevronLeft } from 'lucide-react';
 
@@ -64,6 +65,37 @@ export default function App() {
   const [selectedCluster, setSelectedCluster] = useState<ClusterGroup | null>(null);
   const [isAgentPanelCollapsed, setIsAgentPanelCollapsed] = useState<boolean>(false);
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState<'map' | 'agent'>('map');
+
+  // Viewport navigation command from Agent or Alerts Center
+  const [viewportCommand, setViewportCommand] = useState<{
+    center?: { lat: number; lng: number };
+    zoom?: number;
+    highlightPointId?: string;
+    highlightClusterId?: string;
+    activeLayer?: string;
+    timestamp: number;
+  } | null>(null);
+
+  const applySpatialAction = (action?: SpatialAction) => {
+    if (!action) return;
+    setCurrentTab('mapWorkspace');
+    setMobileWorkspaceView('map');
+
+    if (action.pointId) {
+      const found = points.find(p => p.id === action.pointId);
+      if (found) {
+        setSelectedPoint(found);
+      }
+    }
+
+    setViewportCommand({
+      center: action.lat && action.lng ? { lat: action.lat, lng: action.lng } : undefined,
+      zoom: action.zoom || 14,
+      highlightPointId: action.pointId || (action.target?.startsWith('pt-') ? action.target : undefined),
+      activeLayer: action.layer,
+      timestamp: Date.now(),
+    });
+  };
 
   // Agent Chat States
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([
@@ -199,6 +231,10 @@ export default function App() {
       };
 
       setAgentMessages(prev => [...prev, agentReply]);
+
+      if (agentReply.spatialAction) {
+        applySpatialAction(agentReply.spatialAction);
+      }
 
       // Refresh audit logs if available
       try {
@@ -442,6 +478,7 @@ export default function App() {
                   onSelectPoint={setSelectedPoint}
                   onSelectCluster={setSelectedCluster}
                   onSelectAnomaly={() => setCurrentTab('anomalyCenter')}
+                  externalViewportCommand={viewportCommand}
                 />
 
                 {/* Floating button on mobile to jump to Agent */}
@@ -481,6 +518,7 @@ export default function App() {
                   userRole={currentUser.role}
                   language={language}
                   isDarkMode={isDarkMode}
+                  onApplySpatialAction={applySpatialAction}
                 />
               </div>
             </div>
@@ -500,6 +538,14 @@ export default function App() {
           <AnomalyAlertsCenter
             anomalies={anomalies}
             onUpdateAnomalyStatus={handleUpdateAnomalyStatus}
+            onLocateOnMap={(lat, lng, label) => {
+              applySpatialAction({ type: 'zoom_to', lat, lng, zoom: 15, label });
+            }}
+            onInvestigateWithAgent={(query) => {
+              setCurrentTab('mapWorkspace');
+              setMobileWorkspaceView('agent');
+              handleSendMessage(query);
+            }}
             userRole={currentUser.role}
             language={language}
             isDarkMode={isDarkMode}

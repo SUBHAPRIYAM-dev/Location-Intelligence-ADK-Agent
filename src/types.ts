@@ -123,6 +123,17 @@ export interface AgentReasoningStep {
   explanation: string;
 }
 
+export interface SpatialAction {
+  type: 'zoom_to' | 'filter_layer' | 'highlight_anomalies' | 'toggle_heatmap';
+  target?: any;
+  lat?: number;
+  lng?: number;
+  zoom?: number;
+  pointId?: string;
+  layer?: string;
+  label?: string;
+}
+
 export interface AgentMessage {
   id: string;
   sender: 'user' | 'agent' | 'system';
@@ -132,10 +143,7 @@ export interface AgentMessage {
   sqlQuery?: string;
   sqlExecutionTimeMs?: number;
   dataPointsAffected?: number;
-  spatialAction?: {
-    type: 'zoom_to' | 'filter_layer' | 'highlight_anomalies' | 'toggle_heatmap';
-    target?: any;
-  };
+  spatialAction?: SpatialAction;
 }
 
 export interface AuditLogEntry {

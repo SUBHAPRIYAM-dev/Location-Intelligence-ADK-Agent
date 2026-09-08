@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { AgentMessage, UserRole, LanguageCode } from '../types';
 import { translations } from '../i18n';
+import { FormattedMarkdown } from './FormattedMarkdown';
 
 interface AgentPanelProps {
   messages: AgentMessage[];
@@ -157,9 +158,15 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({
               </div>
 
               {/* Message Content */}
-              <div className="prose prose-invert prose-xs max-w-none whitespace-pre-wrap leading-relaxed">
-                {msg.content}
-              </div>
+              {msg.sender === 'user' ? (
+                <div className="text-xs leading-relaxed whitespace-pre-wrap font-medium">
+                  {msg.content}
+                </div>
+              ) : (
+                <div className="text-xs leading-relaxed">
+                  <FormattedMarkdown content={msg.content} />
+                </div>
+              )}
 
               {/* Step-by-Step Reasoning & MCP Tool Execution Trace */}
               {msg.reasoningSteps && msg.reasoningSteps.length > 0 && (
@@ -223,15 +230,24 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({
                 </div>
               )}
 
-              {/* Actionable Trigger */}
+              {/* Actionable Map Navigation Button */}
               {msg.spatialAction && onApplySpatialAction && (
-                <div className="mt-2.5 pt-2 flex justify-end">
+                <div className="mt-3 pt-2.5 border-t border-slate-700/60">
                   <button
+                    id={`apply-action-${msg.id}`}
                     onClick={() => onApplySpatialAction(msg.spatialAction)}
-                    className="flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:text-sky-300 bg-sky-500/10 px-2 py-1 rounded-lg border border-sky-500/20"
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-sky-500/20 to-indigo-500/20 hover:from-sky-500/30 hover:to-indigo-500/30 border border-sky-500/40 text-sky-300 font-semibold text-xs flex items-center justify-between transition-all group shadow-sm"
                   >
-                    <span>Highlight On Map</span>
-                    <ArrowUpRight className="h-3 w-3" />
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping shrink-0" />
+                      <span className="truncate">
+                        📍 {msg.spatialAction.label ? `Locate: ${msg.spatialAction.label}` : 'Locate & Highlight on Map'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-sky-400 font-mono group-hover:translate-x-0.5 transition-transform shrink-0">
+                      <span>Fly to map</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </div>
                   </button>
                 </div>
               )}

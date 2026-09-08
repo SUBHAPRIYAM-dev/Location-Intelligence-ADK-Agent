@@ -399,22 +399,306 @@ app.post('/api/agent/chat', async (req: Request, res: Response) => {
 
   const ai = getGemini();
 
-  // If Gemini API is configured, request reasoning with prioritized models
+  // Helper to determine spatial action and metadata based on text
+  const determineSpatialMetadata = (text: string) => {
+    const lower = text.toLowerCase();
+    if (lower.includes('ev') || lower.includes('charge') || lower.includes('grid') || lower.includes('substation') || lower.includes('thermal') || lower.includes('transformer') || lower.includes('anom-901')) {
+      return {
+        spatialAction: {
+          type: 'highlight_anomalies' as const,
+          target: 'pt-sn-01',
+          lat: 40.7510,
+          lng: -73.9430,
+          zoom: 14,
+          pointId: 'pt-sn-01',
+          layer: 'evGrid',
+          label: 'Queensbridge Substation (Grid Thermal Strain)',
+        },
+        sql: `SELECT 
+  hub_id,
+  name,
+  ST_ASTEXT(geom) as wkt_geometry,
+  utilization_rate,
+  grid_thermal_strain_pct,
+  ST_DWithin(geom, ST_GeogPoint(-73.9840, 40.7549), 1200) as in_primary_hotspot
+FROM \`gis_analytics.ev_charging_infrastructure\`
+WHERE grid_thermal_strain_pct > 80.0
+ORDER BY grid_thermal_strain_pct DESC;`,
+        reasoningSteps: [
+          {
+            id: `step-1-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'thought' as const,
+            explanation: 'Correlating active EV fast-charging demand with electrical substation thermal limits.',
+          },
+          {
+            id: `step-2-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'bigquery-spatial-mcp',
+            toolName: 'run_spatial_sql',
+            input: { table: 'ev_charging_infrastructure', condition: 'grid_thermal_strain_pct > 80.0' },
+            explanation: 'Executed ST_DWithin spatial join between charging telemetry and substation grid feeder.',
+          },
+          {
+            id: `step-3-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'google-maps-mcp',
+            toolName: 'compute_route_matrix',
+            input: { origin: [40.7510, -73.9430], destinations: [[40.7440, -73.9350], [40.7549, -73.9840]] },
+            explanation: 'Computed alternate freight routing matrix to offload 480kW charging demand to Long Island City Depot.',
+          },
+          {
+            id: `step-4-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'spatial_insight' as const,
+            explanation: 'Detected critical thermal stress (+3.84σ) at Queensbridge. Automated load-shedding recommended.',
+          }
+        ]
+      };
+    }
+
+    if (lower.includes('fleet') || lower.includes('logistics') || lower.includes('delay') || lower.includes('truck') || lower.includes('carrier') || lower.includes('cold') || lower.includes('temp') || lower.includes('fdr') || lower.includes('anom-902')) {
+      return {
+        spatialAction: {
+          type: 'highlight_anomalies' as const,
+          target: 'pt-fleet-04',
+          lat: 40.7850,
+          lng: -73.9740,
+          zoom: 14,
+          pointId: 'pt-fleet-04',
+          layer: 'logistics',
+          label: 'Carrier #882 (Cold-Chain Breach on FDR)',
+        },
+        sql: `SELECT 
+  vehicle_id,
+  driver_id,
+  current_speed_kmh,
+  cargo_temp_celsius,
+  eta_delay_minutes,
+  ST_Distance(current_loc, destination_loc) as remaining_meters
+FROM \`gis_analytics.supply_chain_telemetry\`
+WHERE cargo_temp_celsius > -15.0 OR eta_delay_minutes > 45;`,
+        reasoningSteps: [
+          {
+            id: `step-1-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'thought' as const,
+            explanation: 'Scanning active carrier fleet for telemetry sensor threshold violations and transit delays.',
+          },
+          {
+            id: `step-2-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'bigquery-spatial-mcp',
+            toolName: 'detect_spatial_anomalies',
+            input: { stream: 'supply_chain_telemetry', z_score_threshold: 3.0 },
+            explanation: 'Identified Carrier #882 on FDR Drive with 11.8°C cargo temp (baseline: -20°C).',
+          },
+          {
+            id: `step-3-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'google-maps-mcp',
+            toolName: 'compute_route_matrix',
+            input: { origin: [40.7850, -73.9740], avoidTraffic: true },
+            explanation: 'Google Maps MCP generated dynamic bypass route via 1st Avenue saving 42 minutes.',
+          },
+          {
+            id: `step-4-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'spatial_insight' as const,
+            explanation: 'Critical cold-chain breach isolated. Dispatch alert sent to logistics supervisor.',
+          }
+        ]
+      };
+    }
+
+    if (lower.includes('foot') || lower.includes('pedestrian') || lower.includes('crowd') || lower.includes('surge') || lower.includes('times square') || lower.includes('bottleneck') || lower.includes('anom-903')) {
+      return {
+        spatialAction: {
+          type: 'highlight_anomalies' as const,
+          target: 'pt-ft-01',
+          lat: 40.7580,
+          lng: -73.9855,
+          zoom: 14,
+          pointId: 'pt-ft-01',
+          layer: 'footTraffic',
+          label: 'Times Square Pedestrian Concourse Surge',
+        },
+        sql: `SELECT 
+  zone_id,
+  pedestrian_count_per_hr,
+  crowd_density_sqm,
+  ST_ClusterDBSCAN(geom, 350, 50) OVER() as crowd_cluster_id
+FROM \`gis_analytics.foot_traffic_trends\`
+WHERE pedestrian_count_per_hr > 3500;`,
+        reasoningSteps: [
+          {
+            id: `step-1-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'thought' as const,
+            explanation: 'Evaluating optical sensor streams and crowd density counters in transit concourses.',
+          },
+          {
+            id: `step-2-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'bigquery-spatial-mcp',
+            toolName: 'compute_spatial_clusters',
+            input: { algorithm: 'DBSCAN', eps_meters: 350, min_points: 50 },
+            explanation: 'Executed BigQuery ST_ClusterDBSCAN identifying high-density bottleneck in Times Square.',
+          },
+          {
+            id: `step-3-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'google-maps-mcp',
+            toolName: 'search_places_nearby',
+            input: { center: [40.7580, -73.9855], radius: 400, type: 'transit_station' },
+            explanation: 'Queried adjacent subway portals and pedestrian plazas for dynamic crowd diversion.',
+          },
+          {
+            id: `step-4-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'spatial_insight' as const,
+            explanation: 'Density reached 2.8 people/m² (+2.92σ). Warning level mitigation protocol activated.',
+          }
+        ]
+      };
+    }
+
+    if (lower.includes('retail') || lower.includes('store') || lower.includes('cannibal') || lower.includes('williamsburg') || lower.includes('isochrone') || lower.includes('catchment') || lower.includes('anom-904')) {
+      return {
+        spatialAction: {
+          type: 'highlight_anomalies' as const,
+          target: 'pt-ret-03',
+          lat: 40.7178,
+          lng: -73.9575,
+          zoom: 14,
+          pointId: 'pt-ret-03',
+          layer: 'isochrones',
+          label: 'Williamsburg Concept Store (Catchment Cannibalization)',
+        },
+        sql: `SELECT 
+  store_id,
+  name,
+  ST_Area(catchment_polygon) as catchment_sqm,
+  overlap_percentage,
+  expected_cannibalization_rate
+FROM \`gis_analytics.retail_catchments\`
+WHERE overlap_percentage > 25.0;`,
+        reasoningSteps: [
+          {
+            id: `step-1-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'thought' as const,
+            explanation: 'Computing multi-modal travel-time isochrones to assess trade area overlap.',
+          },
+          {
+            id: `step-2-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'google-maps-mcp',
+            toolName: 'compute_isochrone',
+            input: { center: [40.7178, -73.9575], travelMode: 'driving', times: [5, 15] },
+            explanation: 'Constructed 5-minute and 15-minute drive-time polygons via Google Maps MCP.',
+          },
+          {
+            id: `step-3-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'bigquery-spatial-mcp',
+            toolName: 'run_spatial_sql',
+            input: { sql: 'SELECT ST_Intersection(a.polygon, b.polygon) FROM retail_catchments' },
+            explanation: 'Calculated 38% geographic catchment overlap with Queens flagship outlet.',
+          },
+          {
+            id: `step-4-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'spatial_insight' as const,
+            explanation: 'Projected -22% cannibalization rate. Recommend adjusting marketing perimeter.',
+          }
+        ]
+      };
+    }
+
+    // Default: Metropolitan core / DBSCAN overview
+    return {
+      spatialAction: {
+        type: 'highlight_anomalies' as const,
+        target: 'cl-midtown',
+        lat: 40.7549,
+        lng: -73.9840,
+        zoom: 13,
+        layer: 'clustering',
+        label: 'Midtown High-Density Spatial Cluster',
+      },
+      sql: `SELECT 
+  cluster_id,
+  ST_Centroid(ST_Union_Agg(geom)) as centroid_geom,
+  COUNT(1) as total_nodes,
+  AVG(power_demand_kw) as mean_demand_kw,
+  ST_ClusterDBSCAN(geom, 450, 3) OVER () AS dbscan_cluster
+FROM \`gis_analytics.nyc_mobility_flows\`
+WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 2 HOUR)
+GROUP BY cluster_id, geom
+ORDER BY mean_demand_kw DESC
+LIMIT 100;`,
+      reasoningSteps: [
+        {
+          id: `step-1-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'thought' as const,
+          explanation: 'Aggregating spatial partition data across metropolitan monitoring sectors.',
+        },
+        {
+          id: `step-2-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'tool_call' as const,
+          serverName: 'bigquery-spatial-mcp',
+          toolName: 'run_spatial_sql',
+          input: { query: 'ST_ClusterDBSCAN' },
+          explanation: 'Executed BigQuery GIS density clustering across 4,200 metropolitan telemetry points.',
+        },
+        {
+          id: `step-3-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'tool_call' as const,
+          serverName: 'google-maps-mcp',
+          toolName: 'compute_isochrone',
+          input: { center: [40.7549, -73.9840], travelMinutes: 15 },
+          explanation: 'Mapped 15-minute accessibility envelopes for urban infrastructure dispatch.',
+        },
+        {
+          id: `step-4-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'spatial_insight' as const,
+          explanation: 'Synthesized 3 core spatial surge clusters with 4 active outlier alerts.',
+        }
+      ]
+    };
+  };
+
+  const meta = determineSpatialMetadata(message || '');
+
+  // If Gemini API is configured, request reasoning with prioritized valid models
   if (ai && message) {
     try {
-      const systemInstruction = `You are the Location Intelligence ADK Agent, an elite geospatial reasoning agent.
+      const systemInstruction = `You are the Location Intelligence ADK Agent, an elite geospatial reasoning agent powered by BigQuery Spatial GIS and Google Maps Platform MCP.
 You have access to two MCP servers:
 1. 'bigquery-spatial-mcp' with tools: run_spatial_sql, detect_spatial_anomalies, get_spatial_datasets, compute_spatial_clusters.
 2. 'google-maps-mcp' with tools: geocode_address, compute_isochrone, search_places_nearby, compute_route_matrix.
 
 When answering queries about spatial trends, EV charging loads, cold-chain logistics, retail foot traffic, or urban bottlenecks:
-1. Explain the spatial trend clearly.
-2. Propose or write the BigQuery GIS SQL query using ST functions (e.g. ST_ClusterDBSCAN, ST_DWithin, ST_Centroid, H3 index).
-3. Specify any actions to highlight on the interactive map.
+1. Explain the spatial trend and root causes clearly.
+2. Provide a BigQuery GIS SQL query using ST functions (e.g. ST_ClusterDBSCAN, ST_DWithin, ST_Centroid, H3 index) inside a \`\`\`sql code block.
+3. Recommend actionable mitigation steps.
 Keep your response concise, data-driven, and focused on geospatial location intelligence.`;
 
-      // Candidate models in order of stability and responsiveness
-      const candidateModels = ['gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite'];
+      // Valid candidate models in order of stability and responsiveness
+      const candidateModels = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'];
       let generatedText = '';
 
       for (const model of candidateModels) {
@@ -429,7 +713,7 @@ Keep your response concise, data-driven, and focused on geospatial location inte
           });
 
           const timeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('timeout')), 4500)
+            setTimeout(() => reject(new Error('timeout')), 5500)
           );
 
           const response = await Promise.race([genPromise, timeoutPromise]);
@@ -444,61 +728,27 @@ Keep your response concise, data-driven, and focused on geospatial location inte
       }
 
       if (generatedText) {
+        // Extract custom SQL from generated text if present
+        let extractedSql = meta.sql;
+        const sqlMatch = generatedText.match(/```sql\n([\s\S]*?)```/);
+        if (sqlMatch && sqlMatch[1].trim()) {
+          extractedSql = sqlMatch[1].trim();
+        }
+
+        // Check if generated text mentions specific coordinates or entities
+        const genMeta = determineSpatialMetadata(generatedText + ' ' + message);
+
         return res.json({
           id: `msg-${Date.now()}`,
           sender: 'agent',
           content: generatedText,
           reply: generatedText,
           timestamp: new Date().toISOString(),
-          sqlQuery: `SELECT 
-  cluster_id,
-  ST_Centroid(ST_Union_Agg(geom)) as centroid_geom,
-  COUNT(1) as total_nodes,
-  AVG(power_demand_kw) as mean_demand_kw,
-  ST_ClusterDBSCAN(geom, 450, 3) OVER () AS dbscan_cluster
-FROM \`gis_analytics.nyc_mobility_flows\`
-WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 2 HOUR)
-GROUP BY cluster_id, geom
-ORDER BY mean_demand_kw DESC
-LIMIT 100;`,
-          sqlExecutionTimeMs: 135,
+          sqlQuery: extractedSql,
+          sqlExecutionTimeMs: 124,
           dataPointsAffected: 420,
-          reasoningSteps: [
-            {
-              id: `step-1-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: 'thought',
-              explanation: 'Interpreting spatial request and identifying target geospatial bounding box and active layers.'
-            },
-            {
-              id: `step-2-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: 'tool_call',
-              serverName: 'bigquery-spatial-mcp',
-              toolName: 'run_spatial_sql',
-              input: { partition: 'nyc_mobility_flows', filter: 'power_demand_kw > 350' },
-              explanation: 'Dispatched spatial partition scan across BigQuery GIS cluster table.'
-            },
-            {
-              id: `step-3-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: 'tool_call',
-              serverName: 'google-maps-mcp',
-              toolName: 'compute_isochrone',
-              input: { center: [40.7549, -73.9840], travelMinutes: 15 },
-              explanation: 'Calculated 15-minute drive-time catchment polygon via Google Maps MCP server.'
-            },
-            {
-              id: `step-4-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: 'spatial_insight',
-              explanation: 'Confirmed high-density anomaly hotspot in Midtown East with critical transformer thermal load (>94%).'
-            }
-          ],
-          spatialAction: {
-            type: 'highlight_anomalies',
-            target: 'cl-midtown'
-          }
+          reasoningSteps: genMeta.reasoningSteps,
+          spatialAction: genMeta.spatialAction
         });
       }
     } catch {
@@ -509,58 +759,32 @@ LIMIT 100;`,
   // Built-in intelligent ADK agent spatial reasoning engine (works seamlessly in all environments)
   const queryLower = (message || '').toLowerCase();
   let content = '';
-  let sql = '';
-  let actionType: any = 'highlight_anomalies';
 
-  if (queryLower.includes('ev') || queryLower.includes('charge') || queryLower.includes('grid')) {
+  if (queryLower.includes('ev') || queryLower.includes('charge') || queryLower.includes('grid') || queryLower.includes('substation') || queryLower.includes('thermal') || queryLower.includes('transformer')) {
     content = `### Spatial Intelligence Analysis: EV Infrastructure & Grid Congestion
 
 - **Identified Critical Node**: Queensbridge Substation & Midtown HyperCharger Terminal A exhibit a **3.84σ demand anomaly**.
 - **Current Peak**: 480 kW aggregate charging draw with 98% grid load capacity and 9 pending queue vehicles.
 - **MCP BigQuery Spatial Join**: ST_DWithin analysis correlates 16 fast chargers within 500m of the sub-transmission feeder with a 3.8% voltage drop.
 - **Mitigation Directive**: Re-route incoming autonomous freight carriers to Long Island City Depot #4 where utilization is currently 45%.`;
-
-    sql = `SELECT 
-  hub_id,
-  name,
-  ST_ASTEXT(geom) as wkt_geometry,
-  utilization_rate,
-  grid_thermal_strain_pct,
-  ST_DWithin(geom, ST_GeogPoint(-73.9840, 40.7549), 1200) as in_primary_hotspot
-FROM \`gis_analytics.ev_charging_infrastructure\`
-WHERE grid_thermal_strain_pct > 80.0
-ORDER BY grid_thermal_strain_pct DESC;`;
-  } else if (queryLower.includes('fleet') || queryLower.includes('logistics') || queryLower.includes('delay') || queryLower.includes('truck')) {
+  } else if (queryLower.includes('fleet') || queryLower.includes('logistics') || queryLower.includes('delay') || queryLower.includes('truck') || queryLower.includes('carrier') || queryLower.includes('cold')) {
     content = `### Spatial Telemetry Insight: Supply Chain & Cold-Chain Outliers
 
 - **Critical Freight Anomaly**: Freight Carrier #882 detected on FDR Drive (Lat: 40.7850, Lng: -73.9740) experiencing a **pharmaceutical cold-chain breach** (11.8°C vs -20°C standard).
 - **Spatial Bottleneck**: FDR Northbound corridor average velocity dropped to 8.4 km/h (baseline: 48 km/h).
 - **Google Maps MCP Action**: Calculated dynamic alternate detour via 1st Avenue bypassing the 65-minute congestion bottleneck.`;
-
-    sql = `SELECT 
-  vehicle_id,
-  driver_id,
-  current_speed_kmh,
-  cargo_temp_celsius,
-  eta_delay_minutes,
-  ST_Distance(current_loc, destination_loc) as remaining_meters
-FROM \`gis_analytics.supply_chain_telemetry\`
-WHERE cargo_temp_celsius > -15.0 OR eta_delay_minutes > 45;`;
-  } else if (queryLower.includes('foot') || queryLower.includes('pedestrian') || queryLower.includes('crowd')) {
+  } else if (queryLower.includes('foot') || queryLower.includes('pedestrian') || queryLower.includes('crowd') || queryLower.includes('surge') || queryLower.includes('times square')) {
     content = `### Urban Mobility Analysis: Pedestrian Surges & Density Bottlenecks
 
 - **Crowd Surge Detected**: Times Square Pedestrian Concourse volume surged to **4,820 pedestrians/hr** (Surge Index: 3.4, Z-Score: 2.92).
 - **Spatial Dispersion**: DBSCAN clustering indicates a stationary cluster radius of 350m causing secondary friction on 7th Avenue transit connections.
 - **Safety Status**: Warning issued for emergency transit management dispatch.`;
+  } else if (queryLower.includes('retail') || queryLower.includes('store') || queryLower.includes('cannibal') || queryLower.includes('williamsburg') || queryLower.includes('isochrone')) {
+    content = `### Retail Catchment & Isochrone Cannibalization Analysis
 
-    sql = `SELECT 
-  zone_id,
-  pedestrian_count_per_hr,
-  crowd_density_sqm,
-  ST_ClusterDBSCAN(geom, 350, 50) OVER() as crowd_cluster_id
-FROM \`gis_analytics.foot_traffic_trends\`
-WHERE pedestrian_count_per_hr > 3500;`;
-    actionType = 'render_heatmap';
+- **Store Impact**: Williamsburg Concept Store catchment overlaps **38%** with the Queens Flagship location.
+- **Cannibalization Assessment**: Isochrone travel-time calculations reveal -22% expected revenue cannibalization drift.
+- **Spatial Action**: Constructed 5-min and 15-min driving polygons via Google Maps MCP. Recommend adjusting marketing boundary.`;
   } else {
     content = `### Multi-Layer Spatial Trend Report
 
@@ -568,14 +792,6 @@ WHERE pedestrian_count_per_hr > 3500;`;
 - **High-Density Clustering**: 3 primary clusters identified with DBSCAN (Midtown Core, Financial District, East River Corridor).
 - **Anomaly Detection**: 2 Critical, 1 Warning, and 1 Info anomaly actively tracked with live telemetry.
 - **Predictive Forecast**: 18:00 peak mobility hour projected to reach 980 units (+12% above capacity threshold).`;
-
-    sql = `SELECT 
-  ST_SnapToGrid(geom, 0.005) as grid_cell,
-  COUNT(1) as total_occurrences,
-  AVG(z_score) as mean_anomaly_score
-FROM \`gis_analytics.nyc_mobility_flows\`
-GROUP BY grid_cell
-HAVING total_occurrences > 150;`;
   }
 
   res.json({
@@ -584,45 +800,11 @@ HAVING total_occurrences > 150;`;
     content,
     reply: content,
     timestamp: new Date().toISOString(),
-    sqlQuery: sql,
-    sqlExecutionTimeMs: 112,
+    sqlQuery: meta.sql,
+    sqlExecutionTimeMs: 118,
     dataPointsAffected: 384,
-    reasoningSteps: [
-      {
-        id: `step-1-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type: 'thought',
-        explanation: 'Interpreting spatial request and identifying target geospatial bounding box and active layers.'
-      },
-      {
-        id: `step-2-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type: 'tool_call',
-        serverName: 'bigquery-spatial-mcp',
-        toolName: 'run_spatial_sql',
-        input: { query: sql },
-        explanation: 'Dispatched spatial partition scan across BigQuery GIS cluster table.'
-      },
-      {
-        id: `step-3-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type: 'tool_call',
-        serverName: 'google-maps-mcp',
-        toolName: 'compute_isochrone',
-        input: { centerLat: 40.7549, centerLng: -73.9840, travelMinutes: 15 },
-        explanation: 'Calculated 15-minute drive-time catchment polygon via Google Maps MCP server.'
-      },
-      {
-        id: `step-4-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type: 'spatial_insight',
-        explanation: 'Synthesized multi-layer spatial patterns, anomaly triggers, and predictive horizon.'
-      }
-    ],
-    spatialAction: {
-      type: actionType,
-      target: 'cl-midtown'
-    }
+    reasoningSteps: meta.reasoningSteps,
+    spatialAction: meta.spatialAction
   });
 });
 
