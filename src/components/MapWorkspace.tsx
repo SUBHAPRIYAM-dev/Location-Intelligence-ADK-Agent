@@ -46,6 +46,9 @@ interface MapWorkspaceProps {
   onSelectAnomaly: (anom: AnomalyAlert) => void;
 }
 
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 19;
+
 export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   points,
   clusters,
@@ -238,10 +241,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
 
     // Draw Major Geographic River / Waterway representation (East River & Hudson River approximations)
+    const riverScale = Math.max(1.5, Math.min(36, 32 * Math.pow(2, zoom - 13)));
     const hudson1 = project(40.780, -74.015, width, height);
     const hudson2 = project(40.700, -74.025, width, height);
     ctx.strokeStyle = isDarkMode ? 'rgba(30, 58, 138, 0.35)' : 'rgba(186, 230, 253, 0.5)';
-    ctx.lineWidth = 32;
+    ctx.lineWidth = riverScale;
     ctx.beginPath();
     ctx.moveTo(hudson1.x, hudson1.y);
     ctx.lineTo(hudson2.x, hudson2.y);
@@ -249,7 +253,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
     const eastRiver1 = project(40.770, -73.945, width, height);
     const eastRiver2 = project(40.705, -73.985, width, height);
-    ctx.lineWidth = 24;
+    ctx.lineWidth = Math.max(1, riverScale * 0.75);
     ctx.beginPath();
     ctx.moveTo(eastRiver1.x, eastRiver1.y);
     ctx.lineTo(eastRiver2.x, eastRiver2.y);
@@ -259,6 +263,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     if (layers.isochrones) {
       // Draw 15-min and 5-min drive-time polygons around Midtown
       const centerPt = project(40.7549, -73.9840, width, height);
+      const isochroneScale = Math.pow(2, zoom - 13);
+      const outerIsochroneRadius = Math.max(3, 110 * isochroneScale);
+      const innerIsochroneRadius = Math.max(1.5, 55 * isochroneScale);
       
       // Outer 15m isochrone
       ctx.save();
@@ -267,7 +274,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
-      ctx.arc(centerPt.x, centerPt.y, 110, 0, Math.PI * 2);
+      ctx.arc(centerPt.x, centerPt.y, outerIsochroneRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
@@ -275,7 +282,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       ctx.fillStyle = isDarkMode ? 'rgba(14, 165, 233, 0.12)' : 'rgba(14, 165, 233, 0.09)';
       ctx.strokeStyle = 'rgba(14, 165, 233, 0.6)';
       ctx.beginPath();
-      ctx.arc(centerPt.x, centerPt.y, 55, 0, Math.PI * 2);
+      ctx.arc(centerPt.x, centerPt.y, innerIsochroneRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
       ctx.restore();
@@ -296,7 +303,10 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         else if (pt.category === 'sensor_node') weight = Math.min(1.0, pt.value / 100);
         else weight = 0.4;
 
-        const radius = heatmapConfig.radius * heatmapConfig.intensity;
+        const radius = Math.max(
+          6,
+          heatmapConfig.radius * heatmapConfig.intensity * Math.min(1.2, Math.max(0.35, Math.pow(2, (zoom - 13) * 0.3)))
+        );
         const grad = ctx.createRadialGradient(coord.x, coord.y, 0, coord.x, coord.y, radius);
         
         grad.addColorStop(0, getColorGradient(weight, heatmapConfig.colorScheme));
@@ -382,7 +392,8 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(coord.x, coord.y, 16 + Math.sin(Date.now() / 250) * 3, 0, Math.PI * 2);
+        const baseRing = zoom < 8 ? 10 : 16;
+        ctx.arc(coord.x, coord.y, baseRing + Math.sin(Date.now() / 250) * (zoom < 8 ? 2 : 3), 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
@@ -402,10 +413,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       // Pin body
       ctx.fillStyle = fillColor;
       ctx.strokeStyle = isDarkMode ? '#0f172a' : '#ffffff';
-      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.lineWidth = isSelected ? 3 : (zoom < 6 ? 1 : 2);
 
+      const pointRadius = isSelected ? (zoom < 8 ? 6 : 8) : (zoom < 5 ? 3 : zoom < 8 ? 4.5 : 6);
       ctx.beginPath();
-      ctx.arc(coord.x, coord.y, isSelected ? 8 : 6, 0, Math.PI * 2);
+      ctx.arc(coord.x, coord.y, pointRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
@@ -544,9 +556,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       const diff = currentDist - touchStartRef.current.dist;
       if (Math.abs(diff) > 5) {
         if (diff > 0) {
-          setZoom(z => Math.min(18, z + 0.15));
+          setZoom(z => Math.min(MAX_ZOOM, z + 0.15));
         } else {
-          setZoom(z => Math.max(9, z - 0.15));
+          setZoom(z => Math.max(MIN_ZOOM, z - 0.15));
         }
         touchStartRef.current.dist = currentDist;
       }
@@ -592,9 +604,9 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     if (e.deltaY < 0) {
-      setZoom(z => Math.min(18, z + 0.5));
+      setZoom(z => Math.min(MAX_ZOOM, Math.round((z + 0.5) * 10) / 10));
     } else {
-      setZoom(z => Math.max(9, z - 0.5));
+      setZoom(z => Math.max(MIN_ZOOM, Math.round((z - 0.5) * 10) / 10));
     }
   };
 
@@ -674,19 +686,28 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         <div className="absolute bottom-4 left-3 sm:bottom-5 sm:left-4 flex flex-col gap-1.5 z-30">
           <button
             id="map-zoom-in-btn"
-            onClick={() => setZoom(z => Math.min(18, z + 1))}
-            className="p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-sky-400 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+            onClick={() => setZoom(z => Math.min(MAX_ZOOM, Math.floor(z + 1)))}
+            disabled={zoom >= MAX_ZOOM}
+            className={`p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center ${
+              zoom >= MAX_ZOOM ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-800 hover:text-sky-400'
+            }`}
             title={t.map.zoomIn}
           >
             <ZoomIn className="h-4 w-4" />
           </button>
-          <div className="text-[10px] font-mono font-bold text-center text-sky-400 py-0.5 px-1 bg-slate-950/90 rounded-lg border border-slate-700/80 shadow-md select-none">
-            {zoom}x
+          <div 
+            className="text-[10px] font-mono font-bold text-center text-sky-400 py-0.5 px-1 bg-slate-950/90 rounded-lg border border-slate-700/80 shadow-md select-none"
+            title={`Current zoom: ${zoom.toFixed(1)}x (Range: ${MIN_ZOOM}x - ${MAX_ZOOM}x)`}
+          >
+            {zoom.toFixed(zoom % 1 === 0 ? 0 : 1)}x
           </div>
           <button
             id="map-zoom-out-btn"
-            onClick={() => setZoom(z => Math.max(9, z - 1))}
-            className="p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-sky-400 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+            onClick={() => setZoom(z => Math.max(MIN_ZOOM, Math.ceil(z - 1)))}
+            disabled={zoom <= MIN_ZOOM}
+            className={`p-2.5 rounded-xl border backdrop-blur-md shadow-xl bg-slate-900/90 border-slate-700 text-slate-200 transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center ${
+              zoom <= MIN_ZOOM ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-800 hover:text-sky-400'
+            }`}
             title={t.map.zoomOut}
           >
             <ZoomOut className="h-4 w-4" />
