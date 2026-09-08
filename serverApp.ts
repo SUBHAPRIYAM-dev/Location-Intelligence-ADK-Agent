@@ -132,6 +132,153 @@ export const anomalies = [
     status: 'active',
     tenantId: 'tenant-retail',
     detectedBy: 'ADK Anomaly Engine',
+  },
+  {
+    id: 'anom-905',
+    title: 'Holland Tunnel Freight Transit Shock & Bottleneck',
+    description: 'Freight Carrier #714 telemetry indicates complete standstill at Holland Tunnel entrance (3.2 km/h vs 45 km/h nominal). Delivery window breached by +68 minutes.',
+    severity: 'critical',
+    timestamp: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
+    pointId: 'pt-fleet-01',
+    lat: 40.7282,
+    lng: -74.0076,
+    h3Index: '882a100d6bfffff',
+    metricName: 'Transit Speed Deficit (km/h)',
+    observedValue: 3.2,
+    expectedBaseline: 45.0,
+    zScore: 3.75,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    detectedBy: 'BigQuery GIS Spatial Engine',
+  },
+  {
+    id: 'anom-906',
+    title: 'Substation Phase Voltage Imbalance & Inverter Fault',
+    description: 'Brooklyn Navy Yard EV Depot detected extreme phase voltage imbalance (8.4% vs 2.0% safe tolerance). Risk of inverter trip across 8 DC fast-chargers.',
+    severity: 'warning',
+    timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    pointId: 'pt-ev-03',
+    lat: 40.7022,
+    lng: -73.9712,
+    h3Index: '882a100d41fffff',
+    metricName: 'Phase Voltage Imbalance %',
+    observedValue: 8.4,
+    expectedBaseline: 1.8,
+    zScore: 2.85,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    detectedBy: 'Grid Telemetry Stream',
+  },
+  {
+    id: 'anom-907',
+    title: 'Grand Central Commuter Influx & Transit Chokepoint',
+    description: 'Grand Central 42nd St connector recorded 4.2x passenger inflow above peak baseline. Turnstile throughput saturated at 98.4% capacity.',
+    severity: 'critical',
+    timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
+    pointId: 'pt-ft-02',
+    lat: 40.7527,
+    lng: -73.9772,
+    h3Index: '882a100d23fffff',
+    metricName: 'Commuter Turnstile Velocity',
+    observedValue: 4.2,
+    expectedBaseline: 1.0,
+    zScore: 3.95,
+    status: 'active',
+    tenantId: 'tenant-metro',
+    detectedBy: 'Urban Transit MCP Sensor',
+  },
+  {
+    id: 'anom-908',
+    title: 'Hudson Yards Mega-Charger Harmonic Distortion',
+    description: 'Hudson Yards Superstation detected Total Harmonic Distortion (THD) surge to 14.2% (IEEE 519 limit: 5.0%), indicating harmonic feedback into midtown feeder lines.',
+    severity: 'warning',
+    timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+    pointId: 'pt-ev-02',
+    lat: 40.7538,
+    lng: -74.0022,
+    h3Index: '882a100d63fffff',
+    metricName: 'Total Harmonic Distortion (THD %)',
+    observedValue: 14.2,
+    expectedBaseline: 4.1,
+    zScore: 2.70,
+    status: 'acknowledged',
+    tenantId: 'tenant-acme',
+    detectedBy: 'Power Quality Analyzer',
+    acknowledgedBy: 'Elena Rostova',
+  },
+  {
+    id: 'anom-909',
+    title: 'SoHo Commercial Footfall Deficit & Catchment Collapse',
+    description: 'SoHo Flagship customer walk-in velocity collapsed -58% compared to weekday baseline, attributed to emergency water main replacement on Broadway.',
+    severity: 'warning',
+    timestamp: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
+    pointId: 'pt-ret-01',
+    lat: 40.7223,
+    lng: -73.9987,
+    h3Index: '882a100d67fffff',
+    metricName: 'Store Walk-In Velocity Deficit %',
+    observedValue: -58.0,
+    expectedBaseline: 0.0,
+    zScore: 2.65,
+    status: 'active',
+    tenantId: 'tenant-retail',
+    detectedBy: 'Commercial Catchment Engine',
+  },
+  {
+    id: 'anom-910',
+    title: 'Cross-Bronx Expressway Hazardous Hazmat Sensor Alert',
+    description: 'Carrier #509 telemetry sensor reported abnormal vibration shock and acoustic emission on pressure vessel tank during transit across Highbridge.',
+    severity: 'critical',
+    timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
+    pointId: 'pt-fleet-03',
+    lat: 40.8415,
+    lng: -73.9102,
+    h3Index: '882a10090bfffff',
+    metricName: 'Tank Acoustic Emission (dB)',
+    observedValue: 88.5,
+    expectedBaseline: 35.0,
+    zScore: 4.30,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    detectedBy: 'Fleet Telemetry Safety Watch',
+  },
+  {
+    id: 'anom-911',
+    title: 'Financial District Battery ESS Thermal Runaway Mitigation',
+    description: 'Sub-level energy storage system lithium-ion rack A4 temperature reached 58°C. Automated liquid cooling and N2 inert gas purge stabilized pack at 24°C.',
+    severity: 'critical',
+    timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    pointId: 'pt-ev-05',
+    lat: 40.7075,
+    lng: -74.0090,
+    h3Index: '882a100d4dfffff',
+    metricName: 'BESS Cell Peak Temp (°C)',
+    observedValue: 58.0,
+    expectedBaseline: 25.0,
+    zScore: 3.60,
+    status: 'resolved',
+    tenantId: 'tenant-acme',
+    detectedBy: 'BESS BMS Supervisor',
+    acknowledgedBy: 'Dr. Sarah Vance',
+  },
+  {
+    id: 'anom-912',
+    title: 'Union Square Public Assembly Transit Dispersal Anomaly',
+    description: 'Union Square gathering dispersal rate lagged by 40 minutes due to platform congestion. Resolved after MTA transit dispatched 2 supplemental uptown express trains.',
+    severity: 'info',
+    timestamp: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
+    pointId: 'pt-ft-03',
+    lat: 40.7359,
+    lng: -73.9911,
+    h3Index: '882a100d2dfffff',
+    metricName: 'Dispersal Lag Duration (min)',
+    observedValue: 40.0,
+    expectedBaseline: 10.0,
+    zScore: 1.95,
+    status: 'resolved',
+    tenantId: 'tenant-metro',
+    detectedBy: 'Urban Transit Flow Sensor',
+    acknowledgedBy: 'Marcus Chen',
   }
 ];
 
@@ -402,6 +549,78 @@ app.post('/api/agent/chat', async (req: Request, res: Response) => {
   // Helper to determine spatial action and metadata based on text
   const determineSpatialMetadata = (text: string) => {
     const lower = text.toLowerCase();
+
+    // Check if query mentions coordinates like [lat, lng] or an anomaly ID
+    const coordMatch = text.match(/\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]/);
+    const anomMatch = text.match(/anom-\w+/i);
+    const matchedAnom = anomalies.find(a => 
+      (anomMatch && a.id.toLowerCase() === anomMatch[0].toLowerCase()) ||
+      (coordMatch && Math.abs(a.lat - parseFloat(coordMatch[1])) < 0.015 && Math.abs(a.lng - parseFloat(coordMatch[2])) < 0.015) ||
+      lower.includes(a.title.toLowerCase())
+    );
+
+    if (matchedAnom) {
+      const isGrid = matchedAnom.title.toLowerCase().includes('grid') || matchedAnom.title.toLowerCase().includes('substation') || matchedAnom.title.toLowerCase().includes('charger') || matchedAnom.title.toLowerCase().includes('transformer') || matchedAnom.title.toLowerCase().includes('voltage');
+      const isFleet = matchedAnom.title.toLowerCase().includes('carrier') || matchedAnom.title.toLowerCase().includes('freight') || matchedAnom.title.toLowerCase().includes('truck') || matchedAnom.title.toLowerCase().includes('tunnel') || matchedAnom.title.toLowerCase().includes('cold-chain') || matchedAnom.title.toLowerCase().includes('cargo');
+      const isFootTraffic = matchedAnom.title.toLowerCase().includes('pedestrian') || matchedAnom.title.toLowerCase().includes('commuter') || matchedAnom.title.toLowerCase().includes('crowd') || matchedAnom.title.toLowerCase().includes('transit');
+      const layer = isGrid ? 'evGrid' : isFleet ? 'logistics' : isFootTraffic ? 'footTraffic' : 'retail';
+
+      return {
+        spatialAction: {
+          type: 'highlight_anomalies' as const,
+          target: matchedAnom.pointId || matchedAnom.id,
+          lat: matchedAnom.lat,
+          lng: matchedAnom.lng,
+          zoom: 15,
+          pointId: matchedAnom.pointId,
+          layer,
+          label: matchedAnom.title,
+        },
+        sql: `SELECT 
+  '${matchedAnom.id}' as anomaly_id,
+  '${matchedAnom.title}' as incident_title,
+  ST_GeogPoint(${matchedAnom.lng}, ${matchedAnom.lat}) as location_geom,
+  ${matchedAnom.observedValue} as observed_metric_value,
+  ${matchedAnom.expectedBaseline} as baseline_threshold,
+  ${matchedAnom.zScore} as statistical_z_score,
+  ST_Buffer(ST_GeogPoint(${matchedAnom.lng}, ${matchedAnom.lat}), 650) as spatial_impact_buffer
+FROM \`gis_analytics.realtime_telemetry_stream\`
+WHERE id = '${matchedAnom.id}';`,
+        reasoningSteps: [
+          {
+            id: `step-1-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'thought' as const,
+            explanation: `Ingesting spatial telemetry for anomaly ${matchedAnom.id}: ${matchedAnom.title} at [${matchedAnom.lat.toFixed(4)}, ${matchedAnom.lng.toFixed(4)}].`,
+          },
+          {
+            id: `step-2-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'bigquery-spatial-mcp',
+            toolName: 'run_spatial_sql',
+            input: { query: `ST_Buffer on [${matchedAnom.lat.toFixed(4)}, ${matchedAnom.lng.toFixed(4)}]` },
+            explanation: `Executed BigQuery GIS ST_Buffer calculating 650m impact perimeter for +${matchedAnom.zScore.toFixed(2)}σ outlier.`,
+          },
+          {
+            id: `step-3-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'tool_call' as const,
+            serverName: 'google-maps-mcp',
+            toolName: 'compute_isochrone',
+            input: { center: [matchedAnom.lat, matchedAnom.lng], travelMinutes: 10 },
+            explanation: `Generated multi-modal 10-minute accessibility envelope via Google Maps Platform MCP.`,
+          },
+          {
+            id: `step-4-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'spatial_insight' as const,
+            explanation: `Confirmed ${matchedAnom.severity.toUpperCase()} telemetry excursion (${matchedAnom.metricName}: ${matchedAnom.observedValue} vs ${matchedAnom.expectedBaseline} normal). Automated spatial dispatch triggered.`,
+          }
+        ]
+      };
+    }
+
     if (lower.includes('ev') || lower.includes('charge') || lower.includes('grid') || lower.includes('substation') || lower.includes('thermal') || lower.includes('transformer') || lower.includes('anom-901')) {
       return {
         spatialAction: {

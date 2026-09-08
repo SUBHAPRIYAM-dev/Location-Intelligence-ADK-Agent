@@ -81,17 +81,34 @@ export default function App() {
     setCurrentTab('mapWorkspace');
     setMobileWorkspaceView('map');
 
-    if (action.pointId) {
-      const found = points.find(p => p.id === action.pointId);
-      if (found) {
-        setSelectedPoint(found);
-      }
+    // Find matching spatial point from existing telemetry or coordinates
+    let targetPt = action.pointId ? points.find(p => p.id === action.pointId) : undefined;
+    if (!targetPt && action.lat && action.lng) {
+      targetPt = points.find(p => Math.abs(p.lat - action.lat!) < 0.005 && Math.abs(p.lng - action.lng!) < 0.005);
+    }
+
+    if (targetPt) {
+      setSelectedPoint(targetPt);
+    } else if (action.lat && action.lng) {
+      // Synthesize spatial point so map reticle and detail drawer open seamlessly
+      const synthPt: SpatialPoint = {
+        id: action.pointId || `pt-target-${Date.now()}`,
+        name: action.label || 'Spatial Target Entity',
+        lat: action.lat,
+        lng: action.lng,
+        category: (action.layer === 'evGrid' ? 'sensor_node' : action.layer === 'logistics' ? 'logistics_fleet' : action.layer === 'footTraffic' ? 'foot_traffic' : action.layer === 'retail' ? 'retail_hub' : 'sensor_node'),
+        value: 94.2,
+        status: 'anomaly',
+        tenantId: activeTenant.id,
+        timestamp: new Date().toISOString(),
+      };
+      setSelectedPoint(synthPt);
     }
 
     setViewportCommand({
-      center: action.lat && action.lng ? { lat: action.lat, lng: action.lng } : undefined,
-      zoom: action.zoom || 14,
-      highlightPointId: action.pointId || (action.target?.startsWith('pt-') ? action.target : undefined),
+      center: action.lat && action.lng ? { lat: action.lat, lng: action.lng } : (targetPt ? { lat: targetPt.lat, lng: targetPt.lng } : undefined),
+      zoom: action.zoom || 15,
+      highlightPointId: targetPt?.id || action.pointId || (action.target?.startsWith('pt-') ? action.target : undefined),
       activeLayer: action.layer,
       timestamp: Date.now(),
     });
@@ -538,13 +555,32 @@ export default function App() {
           <AnomalyAlertsCenter
             anomalies={anomalies}
             onUpdateAnomalyStatus={handleUpdateAnomalyStatus}
-            onLocateOnMap={(lat, lng, label) => {
-              applySpatialAction({ type: 'zoom_to', lat, lng, zoom: 15, label });
+            onLocateOnMap={(lat, lng, label, pointId, layer) => {
+              applySpatialAction({ type: 'zoom_to', lat, lng, zoom: 15, label, pointId, layer });
             }}
             onInvestigateWithAgent={(query) => {
               setCurrentTab('mapWorkspace');
+              setIsAgentPanelCollapsed(false);
               setMobileWorkspaceView('agent');
               handleSendMessage(query);
+            }}
+            onInjectAnomaly={(newAnomaly) => {
+              setAnomalies(prev => [newAnomaly, ...prev]);
+              const newLog: AuditLogEntry = {
+                id: `aud-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                userRole: currentUser.role,
+                tenantId: activeTenant.id,
+                tenantName: activeTenant.name,
+                action: 'REALTIME_ANOMALY_INJECTED',
+                targetResource: `anomalies/${newAnomaly.id}`,
+                status: 'allowed',
+                ipAddress: '127.0.0.1',
+                metadata: { title: newAnomaly.title, zScore: newAnomaly.zScore, severity: newAnomaly.severity }
+              };
+              setAuditLogs(prev => [newLog, ...prev]);
             }}
             userRole={currentUser.role}
             language={language}

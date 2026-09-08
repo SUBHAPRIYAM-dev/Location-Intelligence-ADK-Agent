@@ -147,9 +147,14 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
       const pt = points.find(p => p.id === externalViewportCommand.highlightPointId);
       if (pt) {
         onSelectPoint(pt);
+      } else {
+        const matchingAnom = anomalies.find(a => a.id === externalViewportCommand.highlightPointId || a.pointId === externalViewportCommand.highlightPointId);
+        if (matchingAnom && onSelectAnomaly) {
+          onSelectAnomaly(matchingAnom);
+        }
       }
     }
-  }, [externalViewportCommand, points, onSelectPoint]);
+  }, [externalViewportCommand, points, anomalies, onSelectPoint, onSelectAnomaly]);
 
   // Simulated live telemetry movement loop
   useEffect(() => {

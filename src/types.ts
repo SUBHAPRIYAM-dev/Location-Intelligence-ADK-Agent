@@ -71,7 +71,7 @@ export interface AnomalyAlert {
   zScore: number;
   status: 'active' | 'acknowledged' | 'resolved';
   tenantId: string;
-  detectedBy: 'ADK Anomaly Engine' | 'BigQuery Spatial Stream' | 'MCP Anomaly Hook';
+  detectedBy: 'ADK Anomaly Engine' | 'BigQuery Spatial Stream' | 'MCP Anomaly Hook' | string;
   acknowledgedBy?: string;
 }
 
