@@ -4,64 +4,7 @@ An enterprise-grade Location Intelligence Agent built with Google Agent Developm
 
 ---
 
-## Deploy to Vercel via GitHub
 
-This project is configured with full-stack support for Vercel (Vite frontend + Vercel Serverless Function API via `/api/index.ts` and `vercel.json`).
-
-### Step 1: Push to your GitHub Repository
-
-```bash
-# Initialize git (if not already initialized)
-git init
-
-# Add all project files
-git add .
-
-# Commit changes
-git commit -m "Initial commit: Location Intelligence ADK Agent"
-
-# Link to your remote GitHub repository (replace with your repo URL)
-git branch -M main
-git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY_NAME>.git
-
-# Push to GitHub
-git push -u origin main
-```
-
-### Step 2: Import into Vercel
-
-1. Log in to your [Vercel Dashboard](https://vercel.com).
-2. Click **"Add New..."** → **"Project"**.
-3. Select your GitHub repository from the list and click **"Import"**.
-4. Vercel automatically detects Vite settings through `vercel.json`:
-   - **Framework Preset**: `Vite`
-   - **Build Command**: `vite build`
-   - **Output Directory**: `dist`
-5. Under **Environment Variables**, add:
-   - `GEMINI_API_KEY`: Your Google Gemini API Key.
-   - `GOOGLE_MAPS_API_KEY`: (Optional) Your Google Maps API Key or Maps Demo Key.
-   - `VITE_GOOGLE_MAPS_API_KEY`: (Optional) Same as above for client-side maps.
-6. Click **Deploy**. Vercel will build the frontend assets and provision the serverless API routes (`/api/*`) in seconds.
-
----
-
-## Local Development & Container Run
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server (serves on http://localhost:3000)
-npm run dev
-
-# Production build
-npm run build
-
-# Start production server
-npm start
-```
-
----
 
 ## Architecture & Features
 
