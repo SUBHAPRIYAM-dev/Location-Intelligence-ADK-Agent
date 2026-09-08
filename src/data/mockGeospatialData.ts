@@ -1,0 +1,634 @@
+import { Tenant, UserProfile, SpatialPoint, ClusterGroup, AnomalyAlert, AuditLogEntry, ScheduledReport, MCPServer } from '../types';
+
+export const INITIAL_TENANTS: Tenant[] = [
+  {
+    id: 'tenant-acme',
+    name: 'Acme Global Logistics & Fleet',
+    code: 'ACME-LOG',
+    region: 'North America (US-East)',
+    allowedDatasets: ['supply_chain_telemetry', 'nyc_mobility_flows', 'ev_charging_infrastructure'],
+    maxDailyQueries: 50000,
+  },
+  {
+    id: 'tenant-metro',
+    name: 'Metro Urban Planning & Transit',
+    code: 'METRO-GIS',
+    region: 'Global / Multi-Region',
+    allowedDatasets: ['nyc_mobility_flows', 'foot_traffic_trends', 'environmental_sensors'],
+    maxDailyQueries: 100000,
+  },
+  {
+    id: 'tenant-retail',
+    name: 'Apex Omnichannel Retail Corp',
+    code: 'APEX-RET',
+    region: 'US-West & Europe',
+    allowedDatasets: ['retail_foot_traffic', 'store_cannibalization_catchments'],
+    maxDailyQueries: 25000,
+  },
+];
+
+export const INITIAL_USERS: UserProfile[] = [
+  {
+    id: 'usr-101',
+    name: 'Dr. Sarah Vance',
+    email: 'sarah.vance@acme-logistics.io',
+    role: 'super_admin',
+    tenantId: 'tenant-acme',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'usr-102',
+    name: 'Marcus Chen',
+    email: 'marcus.chen@metro-gis.gov',
+    role: 'geospatial_analyst',
+    tenantId: 'tenant-metro',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'usr-103',
+    name: 'Elena Rostova',
+    email: 'elena.rostova@apexretail.com',
+    role: 'operations_lead',
+    tenantId: 'tenant-retail',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'usr-104',
+    name: 'Alex Rivera',
+    email: 'alex.rivera@stakeholder.org',
+    role: 'viewer',
+    tenantId: 'tenant-acme',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  },
+];
+
+export const INITIAL_MCP_SERVERS: MCPServer[] = [
+  {
+    id: 'bigquery-spatial-mcp',
+    name: 'BigQuery Spatial MCP Server',
+    status: 'connected',
+    version: 'v2.4.1 (GIS-Extended)',
+    description: 'Executes high-throughput BigQuery GIS queries, ST_ClusterDBSCAN, ST_DWithin, and H3 hexagonal geospatial partitioning.',
+    toolsCount: 4,
+    lastPingMs: 14,
+  },
+  {
+    id: 'google-maps-mcp',
+    name: 'Google Maps MCP Server',
+    status: 'connected',
+    version: 'v3.1.0 (Enterprise)',
+    description: 'Provides Places API (New), Geocoding REST API, Routes API travel matrix, and drive-time isochrone polygonal computing.',
+    toolsCount: 4,
+    lastPingMs: 22,
+  },
+];
+
+// Base center: New York Metro (Lat: 40.730610, Lng: -73.935242)
+export const RAW_SPATIAL_POINTS: SpatialPoint[] = [
+  // EV Charging Hubs
+  {
+    id: 'pt-ev-01',
+    name: 'Midtown HyperCharger Terminal A',
+    lat: 40.7549,
+    lng: -73.9840,
+    category: 'ev_charging',
+    value: 480, // kW
+    status: 'anomaly',
+    anomalyScore: 0.94,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:50:00Z',
+    metadata: { chargersActive: 16, queueLength: 9, gridLoadPct: 98, voltageDrop: '3.8%' }
+  },
+  {
+    id: 'pt-ev-02',
+    name: 'Hudson Yards Superstation',
+    lat: 40.7538,
+    lng: -74.0022,
+    category: 'ev_charging',
+    value: 360,
+    status: 'normal',
+    anomalyScore: 0.12,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:51:00Z',
+    metadata: { chargersActive: 12, queueLength: 2, gridLoadPct: 62 }
+  },
+  {
+    id: 'pt-ev-03',
+    name: 'Brooklyn Navy Yard EV Depot',
+    lat: 40.7022,
+    lng: -73.9712,
+    category: 'ev_charging',
+    value: 290,
+    status: 'normal',
+    anomalyScore: 0.18,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:49:00Z',
+    metadata: { chargersActive: 8, queueLength: 0, gridLoadPct: 45 }
+  },
+  {
+    id: 'pt-ev-04',
+    name: 'Long Island City Fleet FastHub',
+    lat: 40.7447,
+    lng: -73.9485,
+    category: 'ev_charging',
+    value: 520,
+    status: 'anomaly',
+    anomalyScore: 0.89,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:52:00Z',
+    metadata: { chargersActive: 20, queueLength: 14, gridLoadPct: 99, transformerTemp: '94C' }
+  },
+  {
+    id: 'pt-ev-05',
+    name: 'Financial District Underground Station',
+    lat: 40.7075,
+    lng: -74.0090,
+    category: 'ev_charging',
+    value: 210,
+    status: 'normal',
+    anomalyScore: 0.08,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:45:00Z',
+    metadata: { chargersActive: 6, queueLength: 1, gridLoadPct: 50 }
+  },
+  {
+    id: 'pt-ev-06',
+    name: 'Upper East Side Urban Hub',
+    lat: 40.7736,
+    lng: -73.9566,
+    category: 'ev_charging',
+    value: 180,
+    status: 'normal',
+    anomalyScore: 0.05,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:46:00Z',
+    metadata: { chargersActive: 5, queueLength: 0, gridLoadPct: 38 }
+  },
+
+  // Logistics Fleet Vehicles
+  {
+    id: 'pt-fleet-01',
+    name: 'Freight Carrier #714 (Heavy Haul)',
+    lat: 40.7282,
+    lng: -74.0076,
+    category: 'logistics_fleet',
+    value: 14.2, // km/h (severe traffic slowdown)
+    status: 'anomaly',
+    anomalyScore: 0.87,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:55:00Z',
+    metadata: { vehicleId: 'TRK-714', cargoTemp: '4.2C', etaDelayMinutes: 48, fuelReserve: '64%' }
+  },
+  {
+    id: 'pt-fleet-02',
+    name: 'Urban Van #202 (Express Delivery)',
+    lat: 40.7418,
+    lng: -73.9893,
+    category: 'logistics_fleet',
+    value: 38.5,
+    status: 'normal',
+    anomalyScore: 0.15,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:54:00Z',
+    metadata: { vehicleId: 'VAN-202', cargoTemp: 'N/A', etaDelayMinutes: 0, batteryPct: '81%' }
+  },
+  {
+    id: 'pt-fleet-03',
+    name: 'Intermodal Truck #509',
+    lat: 40.6782,
+    lng: -74.0150,
+    category: 'logistics_fleet',
+    value: 52.0,
+    status: 'normal',
+    anomalyScore: 0.06,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:53:00Z',
+    metadata: { vehicleId: 'TRK-509', cargoTemp: '-18.0C', etaDelayMinutes: 2, fuelReserve: '78%' }
+  },
+  {
+    id: 'pt-fleet-04',
+    name: 'Freight Carrier #882 (Cold Chain)',
+    lat: 40.7850,
+    lng: -73.9740,
+    category: 'logistics_fleet',
+    value: 8.4,
+    status: 'anomaly',
+    anomalyScore: 0.92,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:56:00Z',
+    metadata: { vehicleId: 'TRK-882', cargoTemp: '11.8C (EXCEEDED -20C LIMIT)', etaDelayMinutes: 65, status: 'THERMAL_FAILURE' }
+  },
+  {
+    id: 'pt-fleet-05',
+    name: 'Autonomous Delivery Pod #12',
+    lat: 40.7190,
+    lng: -73.9930,
+    category: 'logistics_fleet',
+    value: 22.0,
+    status: 'normal',
+    anomalyScore: 0.20,
+    tenantId: 'tenant-acme',
+    timestamp: '2026-09-08T06:52:00Z',
+    metadata: { vehicleId: 'POD-012', batteryPct: '74%', speedLimit: 25 }
+  },
+
+  // Foot Traffic / Urban Density
+  {
+    id: 'pt-ft-01',
+    name: 'Times Square Pedestrian Gateway',
+    lat: 40.7580,
+    lng: -73.9855,
+    category: 'foot_traffic',
+    value: 4820, // pedestrians / hr
+    status: 'anomaly',
+    anomalyScore: 0.91,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:50:00Z',
+    metadata: { surgeIndex: 3.4, densitySqMeter: 2.8, crowdFlow: 'Stationary Bottleneck' }
+  },
+  {
+    id: 'pt-ft-02',
+    name: 'Grand Central Terminal Concourse',
+    lat: 40.7527,
+    lng: -73.9772,
+    category: 'foot_traffic',
+    value: 3950,
+    status: 'normal',
+    anomalyScore: 0.32,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:48:00Z',
+    metadata: { surgeIndex: 1.2, densitySqMeter: 1.4, crowdFlow: 'Fluid' }
+  },
+  {
+    id: 'pt-ft-03',
+    name: 'Union Square South Pavilion',
+    lat: 40.7359,
+    lng: -73.9911,
+    category: 'foot_traffic',
+    value: 2100,
+    status: 'normal',
+    anomalyScore: 0.15,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:49:00Z',
+    metadata: { surgeIndex: 0.9, densitySqMeter: 0.8 }
+  },
+  {
+    id: 'pt-ft-04',
+    name: 'SoHo Broadway Corridor',
+    lat: 40.7233,
+    lng: -73.9973,
+    category: 'foot_traffic',
+    value: 1850,
+    status: 'normal',
+    anomalyScore: 0.11,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:47:00Z',
+    metadata: { surgeIndex: 1.0, densitySqMeter: 0.7 }
+  },
+  {
+    id: 'pt-ft-05',
+    name: 'Barclays Center Plaza (Brooklyn)',
+    lat: 40.6826,
+    lng: -73.9754,
+    category: 'foot_traffic',
+    value: 3100,
+    status: 'warning',
+    anomalyScore: 0.74,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:51:00Z',
+    metadata: { surgeIndex: 2.1, eventDetected: 'Arena Exit Spike' }
+  },
+
+  // Retail Hubs & Commercial Footprint
+  {
+    id: 'pt-ret-01',
+    name: 'Apex Flagship 5th Avenue',
+    lat: 40.7624,
+    lng: -73.9738,
+    category: 'retail_hub',
+    value: 84200, // Daily gross sales ($)
+    status: 'normal',
+    anomalyScore: 0.14,
+    tenantId: 'tenant-retail',
+    timestamp: '2026-09-08T06:40:00Z',
+    metadata: { cannibalizationRiskPct: 12, catchmentPopulation: 340000, conversionRate: '4.8%' }
+  },
+  {
+    id: 'pt-ret-02',
+    name: 'Apex Downtown Brookfield Place',
+    lat: 40.7130,
+    lng: -74.0155,
+    category: 'retail_hub',
+    value: 62100,
+    status: 'normal',
+    anomalyScore: 0.08,
+    tenantId: 'tenant-retail',
+    timestamp: '2026-09-08T06:40:00Z',
+    metadata: { cannibalizationRiskPct: 8, catchmentPopulation: 210000, conversionRate: '5.1%' }
+  },
+  {
+    id: 'pt-ret-03',
+    name: 'Apex Williamsburg Concept Store',
+    lat: 40.7178,
+    lng: -73.9575,
+    category: 'retail_hub',
+    value: 41800,
+    status: 'warning',
+    anomalyScore: 0.68,
+    tenantId: 'tenant-retail',
+    timestamp: '2026-09-08T06:40:00Z',
+    metadata: { cannibalizationRiskPct: 38, catchmentOverlap: 'Overlaps with Queens flagship (38%)' }
+  },
+  {
+    id: 'pt-ret-04',
+    name: 'Apex Meatpacking District Showroom',
+    lat: 40.7405,
+    lng: -74.0070,
+    category: 'retail_hub',
+    value: 53900,
+    status: 'normal',
+    anomalyScore: 0.18,
+    tenantId: 'tenant-retail',
+    timestamp: '2026-09-08T06:40:00Z',
+    metadata: { cannibalizationRiskPct: 15, catchmentPopulation: 180000 }
+  },
+
+  // Environmental & Grid Sensors
+  {
+    id: 'pt-sn-01',
+    name: 'Queensbridge Grid Transformer Substation',
+    lat: 40.7510,
+    lng: -73.9430,
+    category: 'sensor_node',
+    value: 94.2, // % thermal strain
+    status: 'anomaly',
+    anomalyScore: 0.96,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:54:00Z',
+    metadata: { thermalLimit: 85.0, phaseImbalance: '6.4%', alertPriority: 'IMMEDIATE_SHUTDOWN_RISK' }
+  },
+  {
+    id: 'pt-sn-02',
+    name: 'Battery Park Air Quality & Microclimate Sensor',
+    lat: 40.7033,
+    lng: -74.0170,
+    category: 'sensor_node',
+    value: 42.0, // AQI
+    status: 'normal',
+    anomalyScore: 0.04,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:45:00Z',
+    metadata: { aqiStatus: 'Good', pm25: '8.4 ug/m3' }
+  },
+  {
+    id: 'pt-sn-03',
+    name: 'Harlem River Ecological Sensor Node',
+    lat: 40.8120,
+    lng: -73.9310,
+    category: 'sensor_node',
+    value: 58.0,
+    status: 'normal',
+    anomalyScore: 0.22,
+    tenantId: 'tenant-metro',
+    timestamp: '2026-09-08T06:42:00Z',
+    metadata: { aqiStatus: 'Moderate', humidity: '72%' }
+  },
+];
+
+export const INITIAL_CLUSTERS: ClusterGroup[] = [
+  {
+    id: 'cl-midtown-core',
+    centroid: [40.755, -73.985],
+    pointCount: 7,
+    avgValue: 1840,
+    radiusMeters: 1400,
+    anomalyCount: 2,
+    category: 'Midtown High-Density Commercial & Mobility Hub',
+    points: RAW_SPATIAL_POINTS.filter(p => p.lat > 40.745 && p.lat < 40.768 && p.lng > -73.995 && p.lng < -73.970),
+    polygonBounds: [
+      [40.748, -73.995],
+      [40.766, -73.985],
+      [40.762, -73.968],
+      [40.745, -73.978],
+    ]
+  },
+  {
+    id: 'cl-downtown-financial',
+    centroid: [40.710, -74.010],
+    pointCount: 5,
+    avgValue: 1220,
+    radiusMeters: 1100,
+    anomalyCount: 0,
+    category: 'Lower Manhattan & Financial Corridor',
+    points: RAW_SPATIAL_POINTS.filter(p => p.lat >= 40.700 && p.lat <= 40.725 && p.lng <= -73.990),
+    polygonBounds: [
+      [40.702, -74.018],
+      [40.722, -74.012],
+      [40.718, -73.998],
+      [40.704, -74.004],
+    ]
+  },
+  {
+    id: 'cl-eastriver-logistics',
+    centroid: [40.746, -73.947],
+    pointCount: 4,
+    avgValue: 430,
+    radiusMeters: 1800,
+    anomalyCount: 2,
+    category: 'Queens / Brooklyn Industrial & EV Distribution Corridor',
+    points: RAW_SPATIAL_POINTS.filter(p => p.lng > -73.965),
+    polygonBounds: [
+      [40.735, -73.955],
+      [40.758, -73.940],
+      [40.745, -73.930],
+      [40.700, -73.965],
+    ]
+  }
+];
+
+export const INITIAL_ANOMALIES: AnomalyAlert[] = [
+  {
+    id: 'anom-901',
+    title: 'Transformer Critical Overheat & EV Surge',
+    description: 'Queensbridge Substation thermal strain exceeded safety threshold (94.2% vs 75% baseline) due to concurrent 480kW charging load.',
+    severity: 'critical',
+    timestamp: '2026-09-08T06:54:12Z',
+    pointId: 'pt-sn-01',
+    lat: 40.7510,
+    lng: -73.9430,
+    h3Index: '882a100d29fffff',
+    metricName: 'Grid Thermal Strain %',
+    observedValue: 94.2,
+    expectedBaseline: 62.0,
+    zScore: 3.84,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    detectedBy: 'ADK Anomaly Engine',
+  },
+  {
+    id: 'anom-902',
+    title: 'Cold-Chain Logistics Cargo Temp Breach',
+    description: 'Freight Carrier #882 detected pharmaceutical cargo temperature increase to 11.8°C (safe limit: -20°C). 65 min route delay on FDR Drive.',
+    severity: 'critical',
+    timestamp: '2026-09-08T06:56:04Z',
+    pointId: 'pt-fleet-04',
+    lat: 40.7850,
+    lng: -73.9740,
+    h3Index: '882a100d27fffff',
+    metricName: 'Refrigeration Temp (°C)',
+    observedValue: 11.8,
+    expectedBaseline: -20.0,
+    zScore: 4.12,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    detectedBy: 'BigQuery Spatial Stream',
+  },
+  {
+    id: 'anom-903',
+    title: 'Extreme Pedestrian Bottleneck & Crowd Surge',
+    description: 'Times Square pedestrian velocity plummeted to 0.4 m/s with crowd density reaching 2.8 people/m², triggering evacuation risk protocol.',
+    severity: 'warning',
+    timestamp: '2026-09-08T06:50:33Z',
+    pointId: 'pt-ft-01',
+    lat: 40.7580,
+    lng: -73.9855,
+    h3Index: '882a100d21fffff',
+    metricName: 'Pedestrian Flow Surge Index',
+    observedValue: 3.4,
+    expectedBaseline: 1.1,
+    zScore: 2.92,
+    status: 'acknowledged',
+    tenantId: 'tenant-metro',
+    detectedBy: 'MCP Anomaly Hook',
+    acknowledgedBy: 'Dr. Sarah Vance',
+  },
+  {
+    id: 'anom-904',
+    title: 'Retail Footfall & Revenue Cannibalization Alert',
+    description: 'Williamsburg Concept Store catchment overlaps 38% with Queens Flagship, causing a -22% expected revenue cannibalization drift.',
+    severity: 'info',
+    timestamp: '2026-09-08T06:40:00Z',
+    pointId: 'pt-ret-03',
+    lat: 40.7178,
+    lng: -73.9575,
+    h3Index: '882a100d35fffff',
+    metricName: 'Catchment Overlap Index',
+    observedValue: 38.0,
+    expectedBaseline: 15.0,
+    zScore: 2.15,
+    status: 'active',
+    tenantId: 'tenant-retail',
+    detectedBy: 'ADK Anomaly Engine',
+  }
+];
+
+export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
+  {
+    id: 'aud-001',
+    timestamp: '2026-09-08T06:55:20Z',
+    userId: 'usr-101',
+    userName: 'Dr. Sarah Vance',
+    userRole: 'super_admin',
+    tenantId: 'tenant-acme',
+    tenantName: 'Acme Global Logistics & Fleet',
+    action: 'BIGQUERY_SPATIAL_SQL_EXECUTE',
+    targetResource: 'bigquery://gis_analytics.nyc_mobility_flows',
+    status: 'allowed',
+    ipAddress: '192.168.1.104',
+    metadata: { query: 'SELECT ST_ClusterDBSCAN(geom, 500, 3) OVER () FROM ...', executionTimeMs: 142, rowsReturned: 420 }
+  },
+  {
+    id: 'aud-002',
+    timestamp: '2026-09-08T06:52:15Z',
+    userId: 'usr-102',
+    userName: 'Marcus Chen',
+    userRole: 'geospatial_analyst',
+    tenantId: 'tenant-metro',
+    tenantName: 'Metro Urban Planning & Transit',
+    action: 'MCP_TOOL_INVOKE',
+    targetResource: 'google-maps-mcp/compute_isochrone',
+    status: 'allowed',
+    ipAddress: '10.200.4.12',
+    metadata: { center: [40.755, -73.985], travelTimeMinutes: 15 }
+  },
+  {
+    id: 'aud-003',
+    timestamp: '2026-09-08T06:48:02Z',
+    userId: 'usr-103',
+    userName: 'Elena Rostova',
+    userRole: 'operations_lead',
+    tenantId: 'tenant-retail',
+    tenantName: 'Apex Omnichannel Retail Corp',
+    action: 'ANOMALY_STATUS_UPDATE',
+    targetResource: 'anomalies/anom-904',
+    status: 'allowed',
+    ipAddress: '172.16.88.2',
+    metadata: { previousStatus: 'active', newStatus: 'acknowledged' }
+  },
+  {
+    id: 'aud-004',
+    timestamp: '2026-09-08T06:30:10Z',
+    userId: 'usr-104',
+    userName: 'Alex Rivera',
+    userRole: 'viewer',
+    tenantId: 'tenant-acme',
+    tenantName: 'Acme Global Logistics & Fleet',
+    action: 'EXPORT_REPORT_ATTEMPT',
+    targetResource: 'reports/confidential_spatial_telemetry',
+    status: 'denied',
+    ipAddress: '198.51.100.44',
+    metadata: { reason: 'Viewer role lacks export_reports permission' }
+  },
+];
+
+export const INITIAL_SCHEDULED_REPORTS: ScheduledReport[] = [
+  {
+    id: 'rep-001',
+    name: 'Daily Metro Mobility & Anomaly Executive Briefing',
+    tenantId: 'tenant-acme',
+    frequency: 'daily',
+    recipients: ['executives@acme-logistics.io', 'fleet-ops@acme-logistics.io'],
+    format: 'PDF',
+    includeAnomalies: true,
+    includePredictiveTrend: true,
+    lastSent: '2026-09-07T08:00:00Z',
+    nextRun: '2026-09-09T08:00:00Z',
+    active: true,
+  },
+  {
+    id: 'rep-002',
+    name: 'Weekly Regional EV Infrastructure Stress Audit',
+    tenantId: 'tenant-metro',
+    frequency: 'weekly',
+    recipients: ['grid-planning@metro-gis.gov', 'sustainability@metro-gis.gov'],
+    format: 'Both',
+    includeAnomalies: true,
+    includePredictiveTrend: true,
+    lastSent: '2026-09-01T09:00:00Z',
+    nextRun: '2026-09-08T09:00:00Z',
+    active: true,
+  }
+];
+
+export const PREDICTIVE_SERIES_DATA = [
+  { time: '00:00', historicalDemand: 180, forecastDemand: 185, lowerBound: 160, upperBound: 210, anomalyCount: 0 },
+  { time: '02:00', historicalDemand: 120, forecastDemand: 125, lowerBound: 105, upperBound: 145, anomalyCount: 0 },
+  { time: '04:00', historicalDemand: 95, forecastDemand: 100, lowerBound: 80, upperBound: 120, anomalyCount: 0 },
+  { time: '06:00', historicalDemand: 260, forecastDemand: 275, lowerBound: 240, upperBound: 310, anomalyCount: 1 },
+  { time: '08:00', historicalDemand: 580, forecastDemand: 610, lowerBound: 540, upperBound: 680, anomalyCount: 3 },
+  { time: '10:00', historicalDemand: 740, forecastDemand: 760, lowerBound: 690, upperBound: 830, anomalyCount: 2 },
+  { time: '12:00', historicalDemand: 820, forecastDemand: 850, lowerBound: 770, upperBound: 930, anomalyCount: 4 },
+  { time: '14:00', historicalDemand: 790, forecastDemand: 810, lowerBound: 730, upperBound: 890, anomalyCount: 2 },
+  { time: '16:00', historicalDemand: 880, forecastDemand: 910, lowerBound: 820, upperBound: 1000, anomalyCount: 5 },
+  { time: '18:00', historicalDemand: 940, forecastDemand: 980, lowerBound: 890, upperBound: 1070, anomalyCount: 6 },
+  { time: '20:00', historicalDemand: 680, forecastDemand: 710, lowerBound: 630, upperBound: 790, anomalyCount: 2 },
+  { time: '22:00', historicalDemand: 390, forecastDemand: 410, lowerBound: 350, upperBound: 470, anomalyCount: 1 },
+];
+
+export const MOCK_TENANTS = INITIAL_TENANTS;
+export const MOCK_USERS = INITIAL_USERS;
+export const MOCK_SPATIAL_POINTS = RAW_SPATIAL_POINTS;
+export const MOCK_CLUSTERS = INITIAL_CLUSTERS;
+export const MOCK_ANOMALIES = INITIAL_ANOMALIES;
+export const MOCK_AUDIT_LOGS = INITIAL_AUDIT_LOGS;
+export const MOCK_SCHEDULED_REPORTS = INITIAL_SCHEDULED_REPORTS;

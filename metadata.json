@@ -1,0 +1,6 @@
+{
+  "name": "Location Intelligence ADK Agent",
+  "description": "Enterprise Location Intelligence ADK Agent with BigQuery & Google Maps MCP servers, real-time spatial heatmaps, multi-layer clustering, anomaly detection alerts, RBAC, and predictive spatial analytics.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
