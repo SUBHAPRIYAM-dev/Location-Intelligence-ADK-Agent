@@ -482,6 +482,91 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     }
   };
 
+  const touchStartRef = useRef<{ x: number; y: number; dist?: number }>({ x: 0, y: 0 });
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const clientX = touch.clientX;
+      const clientY = touch.clientY;
+      setIsDragging(true);
+      setDragStart({ x: clientX, y: clientY });
+      touchStartRef.current = { x: clientX, y: clientY };
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartRef.current = { x: 0, y: 0, dist };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1 && isDragging) {
+      const touch = e.touches[0];
+      const dx = touch.clientX - dragStart.x;
+      const dy = touch.clientY - dragStart.y;
+      setDragStart({ x: touch.clientX, y: touch.clientY });
+
+      const scale = Math.pow(2, zoom) * 80;
+      setCenter(prev => ({
+        lat: prev.lat + dy / scale,
+        lng: prev.lng - dx / (scale * 1.35),
+      }));
+    } else if (e.touches.length === 2 && touchStartRef.current.dist) {
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const diff = currentDist - touchStartRef.current.dist;
+      if (Math.abs(diff) > 5) {
+        if (diff > 0) {
+          setZoom(z => Math.min(18, z + 0.15));
+        } else {
+          setZoom(z => Math.max(9, z - 0.15));
+        }
+        touchStartRef.current.dist = currentDist;
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (isDragging) {
+      setIsDragging(false);
+      const touch = e.changedTouches[0];
+      if (touch && touchStartRef.current) {
+        const moveDist = Math.hypot(
+          touch.clientX - touchStartRef.current.x,
+          touch.clientY - touchStartRef.current.y
+        );
+        if (moveDist < 12) {
+          const canvas = canvasRef.current;
+          if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = touch.clientX - rect.left;
+            const mouseY = touch.clientY - rect.top;
+            
+            let foundPoint: SpatialPoint | null = null;
+            activePoints.forEach(pt => {
+              const offset = telemetryOffsets[pt.id] || { lat: 0, lng: 0 };
+              const coord = project(pt.lat + offset.lat, pt.lng + offset.lng, rect.width, rect.height);
+              if (Math.hypot(coord.x - mouseX, coord.y - mouseY) < 22) {
+                foundPoint = pt;
+              }
+            });
+
+            if (foundPoint) {
+              onSelectPoint(foundPoint);
+            } else {
+              onSelectPoint(null);
+            }
+          }
+        }
+      }
+    }
+  };
+
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     if (e.deltaY < 0) {
@@ -492,61 +577,64 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-145px)] min-h-[580px] flex overflow-hidden">
+    <div className="relative w-full h-[calc(100vh-145px)] min-h-[480px] sm:min-h-[580px] flex overflow-hidden">
       {/* Map Canvas Viewport */}
-      <div className="relative flex-1 h-full select-none">
+      <div className="relative flex-1 h-full select-none touch-none">
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onWheel={handleWheel}
           onClick={handleClick}
-          className="w-full h-full cursor-grab active:cursor-grabbing block"
+          className="w-full h-full cursor-grab active:cursor-grabbing block touch-none"
         />
 
-        {/* Floating Top Left: Quick Telemetry Metrics */}
-        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 pointer-events-none">
-          <div className="px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto flex items-center gap-2 text-xs font-mono bg-slate-900/80 border-slate-700/80 text-slate-200">
+        {/* Floating Top Left: Quick Telemetry Metrics (Responsive) */}
+        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 sm:gap-2 pointer-events-none z-10 max-w-[calc(100vw-130px)] sm:max-w-none">
+          <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-mono bg-slate-900/80 border-slate-700/80 text-slate-200">
             <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
             <span className="font-semibold text-sky-400">{activePoints.length}</span>
-            <span className="text-slate-400 text-[11px]">Points Active</span>
+            <span className="text-slate-400 text-[10px] sm:text-[11px]">Points</span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto flex items-center gap-2 text-xs font-mono bg-slate-900/80 border-slate-700/80 text-slate-200">
+          <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-mono bg-slate-900/80 border-slate-700/80 text-slate-200">
             <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
             <span className="font-semibold text-rose-400">
               {activePoints.filter(p => p.status === 'anomaly').length}
             </span>
-            <span className="text-slate-400 text-[11px]">Anomalies</span>
+            <span className="text-slate-400 text-[10px] sm:text-[11px]">Alerts</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto text-xs font-mono bg-slate-900/80 border-slate-700/80 text-slate-200">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto text-xs font-mono bg-slate-900/80 border-slate-700/80 text-slate-200">
             <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
             <span className="text-[11px] text-slate-300">Telemetry Stream:</span>
-            <span className="font-semibold text-emerald-400">12.8 msg/sec</span>
+            <span className="font-semibold text-emerald-400">12.8 msg/s</span>
           </div>
         </div>
 
         {/* Floating Top Right: Controls & Layer Switcher */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 sm:gap-2 z-10">
           <button
             id="stream-play-pause-btn"
             onClick={() => setIsStreaming(!isStreaming)}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold backdrop-blur-md shadow-lg flex items-center gap-1.5 transition-colors ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-lg flex items-center gap-1.5 transition-colors min-h-[36px] sm:min-h-[38px] ${
               isStreaming
                 ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300'
                 : 'bg-slate-800/80 border-slate-700 text-slate-400'
             }`}
           >
             {isStreaming ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            <span>{isStreaming ? 'Streaming' : 'Paused'}</span>
+            <span className="hidden xs:inline">{isStreaming ? 'Streaming' : 'Paused'}</span>
           </button>
 
           <button
             id="layer-config-btn"
             onClick={() => setShowConfigDrawer(!showConfigDrawer)}
-            className={`p-2 rounded-xl border backdrop-blur-md shadow-lg transition-colors ${
+            className={`p-2 rounded-xl border backdrop-blur-md shadow-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${
               showConfigDrawer
                 ? 'bg-sky-600 text-white border-sky-500'
                 : 'bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800'
@@ -558,11 +646,11 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
         </div>
 
         {/* Floating Bottom Left: Zoom & View Navigation Controls */}
-        <div className="absolute bottom-6 left-4 flex flex-col gap-1.5 z-10">
+        <div className="absolute bottom-4 left-3 sm:bottom-6 sm:left-4 flex flex-col gap-1.5 z-10">
           <button
             id="map-zoom-in-btn"
             onClick={() => setZoom(z => Math.min(18, z + 1))}
-            className="p-2 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-2.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
             title={t.map.zoomIn}
           >
             <ZoomIn className="h-4 w-4" />
@@ -570,7 +658,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
           <button
             id="map-zoom-out-btn"
             onClick={() => setZoom(z => Math.max(9, z - 1))}
-            className="p-2 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-2.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
             title={t.map.zoomOut}
           >
             <ZoomOut className="h-4 w-4" />
@@ -581,15 +669,15 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               setCenter({ lat: 40.742, lng: -73.978 });
               setZoom(13);
             }}
-            className="p-2 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-2.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
             title={t.map.resetView}
           >
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Floating Legend / Attribution Indicator */}
-        <div className="absolute bottom-6 right-4 flex items-center gap-3 px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/85 border-slate-700/80 text-[10px] text-slate-300">
+        {/* Floating Legend / Attribution Indicator (Desktop & Tablet) */}
+        <div className="absolute bottom-4 right-3 sm:bottom-6 sm:right-4 hidden sm:flex items-center gap-2.5 lg:gap-3 px-2.5 sm:px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg bg-slate-900/85 border-slate-700/80 text-[10px] text-slate-300">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             <span>EV Grid</span>
@@ -657,150 +745,157 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
       {/* Slide-out Layer & Heatmap Controls Drawer */}
       {showConfigDrawer && (
-        <div className={`w-80 border-l p-4 overflow-y-auto z-20 flex flex-col justify-between ${
-          isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
-          <div className="space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Sliders className="h-4 w-4 text-sky-400" />
-                <h3 className="font-bold text-sm">{t.map.layers} & Visuals</h3>
-              </div>
-              <button
-                onClick={() => setShowConfigDrawer(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Heatmap Configuration Section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Flame className="h-3.5 w-3.5 text-amber-400" />
-                  {t.map.heatmap}
-                </span>
-                <input
-                  type="checkbox"
-                  checked={layers.heatmaps}
-                  onChange={e => setLayers({ ...layers, heatmaps: e.target.checked })}
-                  className="rounded text-sky-500 focus:ring-sky-400"
-                />
-              </div>
-
-              {layers.heatmaps && (
-                <div className="space-y-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs">
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>{t.map.intensity}</span>
-                      <span className="font-mono text-sky-400">{heatmapConfig.intensity.toFixed(1)}x</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.4"
-                      max="2.5"
-                      step="0.1"
-                      value={heatmapConfig.intensity}
-                      onChange={e => setHeatmapConfig({ ...heatmapConfig, intensity: parseFloat(e.target.value) })}
-                      className="w-full accent-sky-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>{t.map.radius}</span>
-                      <span className="font-mono text-sky-400">{heatmapConfig.radius}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="15"
-                      max="75"
-                      step="5"
-                      value={heatmapConfig.radius}
-                      onChange={e => setHeatmapConfig({ ...heatmapConfig, radius: parseInt(e.target.value) })}
-                      className="w-full accent-sky-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <span className="text-[11px] text-slate-400 block mb-1.5">{t.map.colorScheme}</span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {(['turbo', 'plasma', 'thermal', 'emerald'] as const).map(sch => (
-                        <button
-                          key={sch}
-                          onClick={() => setHeatmapConfig({ ...heatmapConfig, colorScheme: sch })}
-                          className={`px-2 py-1 rounded-lg capitalize text-[11px] font-semibold border transition-all ${
-                            heatmapConfig.colorScheme === sch
-                              ? 'bg-sky-600 text-white border-sky-400 shadow-sm'
-                              : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          {sch}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+        <>
+          {/* Mobile backdrop */}
+          <div 
+            onClick={() => setShowConfigDrawer(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs z-30 lg:hidden"
+          />
+          <div className={`fixed sm:absolute top-0 right-0 bottom-0 w-full sm:w-80 border-l p-4 overflow-y-auto z-40 flex flex-col justify-between shadow-2xl transition-all ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Sliders className="h-4 w-4 text-sky-400" />
+                  <h3 className="font-bold text-sm">{t.map.layers} & Visuals</h3>
                 </div>
-              )}
-            </div>
+                <button
+                  onClick={() => setShowConfigDrawer(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
 
-            {/* Layer Visibility Toggles */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-300 block">Spatial Layer Visibility</span>
-              
-              {[
-                { id: 'clustering', label: t.map.clustering, state: layers.clustering, icon: Layers },
-                { id: 'isochrones', label: t.map.isochrones, state: layers.isochrones, icon: Compass },
-                { id: 'telemetryStream', label: t.map.telemetry, state: layers.telemetryStream, icon: Radio },
-                { id: 'anomaliesOnly', label: 'Filter Critical Anomalies Only', state: layers.anomaliesOnly, icon: AlertTriangle },
-                { id: 'evGrid', label: 'EV Charging & Power Grid', state: layers.evGrid, icon: Zap },
-                { id: 'logistics', label: 'Freight Logistics Fleet', state: layers.logistics, icon: Truck },
-                { id: 'footTraffic', label: 'Pedestrian Density Flows', state: layers.footTraffic, icon: Users },
-                { id: 'retail', label: 'Commercial Retail Hubs', state: layers.retail, icon: Store },
-              ].map(item => {
-                const Icon = item.icon;
-                return (
-                  <label
-                    key={item.id}
-                    className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 hover:bg-slate-800/60 border border-slate-800 cursor-pointer text-xs transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-3.5 w-3.5 text-sky-400" />
-                      <span className="text-slate-300">{item.label}</span>
+              {/* Heatmap Configuration Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Flame className="h-3.5 w-3.5 text-amber-400" />
+                    {t.map.heatmap}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={layers.heatmaps}
+                    onChange={e => setLayers({ ...layers, heatmaps: e.target.checked })}
+                    className="rounded text-sky-500 focus:ring-sky-400 h-4 w-4"
+                  />
+                </div>
+
+                {layers.heatmaps && (
+                  <div className="space-y-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs">
+                    <div>
+                      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                        <span>{t.map.intensity}</span>
+                        <span className="font-mono text-sky-400">{heatmapConfig.intensity.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.4"
+                        max="2.5"
+                        step="0.1"
+                        value={heatmapConfig.intensity}
+                        onChange={e => setHeatmapConfig({ ...heatmapConfig, intensity: parseFloat(e.target.value) })}
+                        className="w-full accent-sky-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
+                      />
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={item.state}
-                      onChange={e => setLayers({ ...layers, [item.id]: e.target.checked })}
-                      className="rounded text-sky-500 focus:ring-sky-400"
-                    />
-                  </label>
-                );
-              })}
+
+                    <div>
+                      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                        <span>{t.map.radius}</span>
+                        <span className="font-mono text-sky-400">{heatmapConfig.radius}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="15"
+                        max="75"
+                        step="5"
+                        value={heatmapConfig.radius}
+                        onChange={e => setHeatmapConfig({ ...heatmapConfig, radius: parseInt(e.target.value) })}
+                        className="w-full accent-sky-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] text-slate-400 block mb-1.5">{t.map.colorScheme}</span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(['turbo', 'plasma', 'thermal', 'emerald'] as const).map(sch => (
+                          <button
+                            key={sch}
+                            onClick={() => setHeatmapConfig({ ...heatmapConfig, colorScheme: sch })}
+                            className={`px-2 py-1.5 rounded-lg capitalize text-[11px] font-semibold border transition-all ${
+                              heatmapConfig.colorScheme === sch
+                                ? 'bg-sky-600 text-white border-sky-400 shadow-sm'
+                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {sch}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Layer Visibility Toggles */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-300 block">Spatial Layer Visibility</span>
+                
+                {[
+                  { id: 'clustering', label: t.map.clustering, state: layers.clustering, icon: Layers },
+                  { id: 'isochrones', label: t.map.isochrones, state: layers.isochrones, icon: Compass },
+                  { id: 'telemetryStream', label: t.map.telemetry, state: layers.telemetryStream, icon: Radio },
+                  { id: 'anomaliesOnly', label: 'Filter Critical Anomalies Only', state: layers.anomaliesOnly, icon: AlertTriangle },
+                  { id: 'evGrid', label: 'EV Charging & Power Grid', state: layers.evGrid, icon: Zap },
+                  { id: 'logistics', label: 'Freight Logistics Fleet', state: layers.logistics, icon: Truck },
+                  { id: 'footTraffic', label: 'Pedestrian Density Flows', state: layers.footTraffic, icon: Users },
+                  { id: 'retail', label: 'Commercial Retail Hubs', state: layers.retail, icon: Store },
+                ].map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <label
+                      key={item.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 hover:bg-slate-800/60 border border-slate-800 cursor-pointer text-xs transition-colors min-h-[38px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-3.5 w-3.5 text-sky-400" />
+                        <span className="text-slate-300">{item.label}</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={item.state}
+                        onChange={e => setLayers({ ...layers, [item.id]: e.target.checked })}
+                        className="rounded text-sky-500 focus:ring-sky-400 h-4 w-4"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 text-[11px] text-slate-400 font-mono">
+              CRS: EPSG:4326 (WGS 84)<br />
+              Partition: BigQuery Spatial Cache
             </div>
           </div>
-
-          <div className="pt-4 border-t border-slate-800 text-[11px] text-slate-400 font-mono">
-            CRS: EPSG:4326 (WGS 84)<br />
-            Partition: BigQuery Spatial Cache
-          </div>
-        </div>
+        </>
       )}
 
       {/* Selected Point Details Drawer */}
       {selectedPoint && (
-        <div className={`absolute top-4 left-4 w-84 rounded-2xl border shadow-2xl p-4 z-40 backdrop-blur-xl ${
+        <div className={`fixed sm:absolute bottom-4 left-3 right-3 sm:bottom-auto sm:top-4 sm:left-4 sm:right-auto sm:w-84 max-h-[75vh] overflow-y-auto rounded-2xl border shadow-2xl p-4 z-40 backdrop-blur-xl ${
           isDarkMode ? 'bg-slate-900/95 border-slate-700 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'
         }`}>
           <div className="flex items-center justify-between pb-2 border-b border-slate-700/50 mb-3">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-sky-400" />
-              <h4 className="font-bold text-sm truncate max-w-[200px]">{selectedPoint.name}</h4>
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin className="h-4 w-4 text-sky-400 shrink-0" />
+              <h4 className="font-bold text-sm truncate">{selectedPoint.name}</h4>
             </div>
             <button
               onClick={() => onSelectPoint(null)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-200"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 shrink-0"
             >
               <X className="h-4 w-4" />
             </button>
@@ -832,7 +927,7 @@ export const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               <div className="mt-3 p-2 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1 text-[11px]">
                 <span className="font-semibold text-slate-400 block text-[10px] uppercase tracking-wider">Spatial Metadata</span>
                 {Object.entries(selectedPoint.metadata).map(([k, v]) => (
-                  <div key={k} className="flex justify-between font-mono">
+                  <div key={k} className="flex justify-between font-mono gap-2">
                     <span className="text-slate-400 truncate">{k}:</span>
                     <span className="text-slate-200 truncate">{String(v)}</span>
                   </div>

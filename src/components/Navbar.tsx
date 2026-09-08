@@ -17,7 +17,9 @@ import {
   CheckCircle2, 
   UserCheck, 
   Building2,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
 import { Tenant, UserProfile, UserRole, LanguageCode, AnomalyAlert } from '../types';
 import { translations } from '../i18n';
@@ -66,6 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showAlertMenu, setShowAlertMenu] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
 
   const activeAnomalies = anomalies.filter(a => a.status === 'active');
   const criticalCount = activeAnomalies.filter(a => a.severity === 'critical').length;
@@ -98,32 +101,32 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className={`border-b sticky top-0 z-50 transition-colors ${
-      isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+      isDarkMode ? 'bg-slate-900/95 backdrop-blur-md border-slate-800 text-slate-100' : 'bg-white/95 backdrop-blur-md border-slate-200 text-slate-900'
     }`}>
       {/* Top Utility Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-3 text-xs">
         {/* Brand & Subtitle */}
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
             <Compass className="h-5 w-5 animate-spin-slow" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-sky-400 via-indigo-300 to-teal-400 bg-clip-text text-transparent">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="font-extrabold text-xs sm:text-sm tracking-tight truncate bg-gradient-to-r from-sky-400 via-indigo-300 to-teal-400 bg-clip-text text-transparent">
                 {t.appName}
               </span>
-              <span className="px-2 py-0.5 rounded-full font-mono text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <span className="shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full font-mono text-[9px] sm:text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
                 ADK v2.4
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
+            <p className="text-[10px] sm:text-[11px] text-slate-400 hidden sm:block truncate">
               {t.subtitle}
             </p>
           </div>
         </div>
 
-        {/* Center: MCP Status Indicators */}
-        <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-lg border bg-slate-800/40 border-slate-700/60">
+        {/* Center: MCP Status Indicators (Desktop & Tablet landscape) */}
+        <div className="hidden xl:flex items-center gap-2.5 px-3 py-1.5 rounded-lg border bg-slate-800/40 border-slate-700/60">
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-400">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <Server className="h-3.5 w-3.5 text-emerald-400" />
@@ -137,8 +140,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Right Utility Controls: Tenant, Role, Offline, Alert Bell, Lang, Theme */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right Controls: Desktop/Tablet view */}
+        <div className="hidden md:flex items-center gap-2 sm:gap-2.5">
           {/* Multi-Tenant Switcher */}
           <div className="relative">
             <button
@@ -156,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Building2 className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="max-w-[120px] truncate">{activeTenant.name}</span>
+              <span className="max-w-[100px] lg:max-w-[130px] truncate">{activeTenant.name}</span>
               <ChevronDown className="h-3 w-3 text-slate-400" />
             </button>
 
@@ -208,7 +211,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <UserCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="font-semibold text-emerald-400 uppercase text-[10px]">
+              <span className="font-semibold text-emerald-400 uppercase text-[10px] max-w-[90px] lg:max-w-none truncate">
                 {currentUser.role.replace('_', ' ')}
               </span>
               <ChevronDown className="h-3 w-3 text-slate-400" />
@@ -408,11 +411,153 @@ export const Navbar: React.FC<NavbarProps> = ({
             {isDarkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
           </button>
         </div>
+
+        {/* Mobile Actions: Bell, Theme, and Drawer Hamburger Button */}
+        <div className="flex md:hidden items-center gap-1.5">
+          {/* Anomaly Quick Bell for Mobile */}
+          <button
+            id="mobile-anomaly-btn"
+            onClick={() => onSelectTab('anomalyCenter')}
+            className={`relative p-2 rounded-xl border transition-colors ${
+              isDarkMode ? 'bg-slate-800/80 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+            }`}
+          >
+            <AlertTriangle className={`h-4 w-4 ${criticalCount > 0 ? 'text-rose-500 animate-bounce' : 'text-amber-400'}`} />
+            {activeAnomalies.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-600 text-white font-bold text-[9px] flex items-center justify-center">
+                {activeAnomalies.length}
+              </span>
+            )}
+          </button>
+
+          {/* Theme Toggle Mobile */}
+          <button
+            id="mobile-theme-btn"
+            onClick={onToggleDarkMode}
+            className={`p-2 rounded-xl border transition-colors ${
+              isDarkMode ? 'bg-slate-800/80 border-slate-700 text-amber-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+            }`}
+          >
+            {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          {/* Mobile Drawer Hamburger Button */}
+          <button
+            id="mobile-menu-toggle-btn"
+            onClick={() => setShowMobileDrawer(!showMobileDrawer)}
+            className={`p-2 rounded-xl border font-medium text-xs flex items-center gap-1 transition-colors ${
+              showMobileDrawer
+                ? 'bg-sky-600 text-white border-sky-500'
+                : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+            }`}
+            aria-label="Open Mobile System Menu"
+          >
+            {showMobileDrawer ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
-      {/* Main Tab Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto no-scrollbar">
-        <nav className="flex items-center space-x-1 border-t border-slate-800/50 py-1.5">
+      {/* Mobile Drawer Menu (Slide-down modal for phone/tablet) */}
+      {showMobileDrawer && (
+        <div className={`md:hidden border-t px-4 py-3 space-y-3.5 shadow-xl transition-all ${
+          isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
+          {/* Tenant and User Switcher Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                {t.rbac.tenant}
+              </label>
+              <select
+                value={activeTenant.id}
+                onChange={e => {
+                  const found = tenants.find(ten => ten.id === e.target.value);
+                  if (found) onSelectTenant(found);
+                }}
+                className={`w-full p-2 rounded-xl text-xs border outline-none font-medium ${
+                  isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-slate-100 border-slate-200 text-slate-900'
+                }`}
+              >
+                {tenants.map(ten => (
+                  <option key={ten.id} value={ten.id}>
+                    {ten.name} ({ten.region})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                {t.rbac.role} & Persona
+              </label>
+              <select
+                value={currentUser.id}
+                onChange={e => {
+                  const found = users.find(u => u.id === e.target.value);
+                  if (found) onSelectUser(found);
+                }}
+                className={`w-full p-2 rounded-xl text-xs border outline-none font-medium ${
+                  isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-slate-100 border-slate-200 text-slate-900'
+                }`}
+              >
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} — {roleLabels[u.role]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Language & Offline Controls */}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/50">
+            <div className="flex items-center gap-1.5">
+              <Globe className="h-4 w-4 text-sky-400 shrink-0" />
+              <select
+                value={language}
+                onChange={e => onSelectLanguage(e.target.value as LanguageCode)}
+                className={`p-1.5 rounded-lg text-xs border outline-none font-medium ${
+                  isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                }`}
+              >
+                {languageOptions.map(opt => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.flag} {opt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={onToggleOffline}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold ${
+                isOffline 
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' 
+                  : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+              }`}
+            >
+              {isOffline ? <WifiOff className="h-3.5 w-3.5" /> : <Wifi className="h-3.5 w-3.5" />}
+              <span>{isOffline ? `Offline (${offlineQueueCount})` : 'Online Synced'}</span>
+            </button>
+          </div>
+
+          {/* MCP Health Indicators in Mobile Drawer */}
+          <div className="flex items-center justify-around p-2 rounded-xl bg-slate-800/40 border border-slate-700/60 text-[11px] font-mono">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>BigQuery MCP: Connected</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sky-400">
+              <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+              <span>Maps MCP: Ready</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Tab Navigation Bar with Touch-Friendly Horizontal Scroll */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 overflow-x-auto touch-scroll no-scrollbar">
+        <nav className="flex items-center space-x-1 sm:space-x-1.5 border-t border-slate-800/50 py-1 sm:py-1.5 min-w-max">
           {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = currentTab === tab.id;
@@ -420,8 +565,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={tab.id}
                 id={`tab-btn-${tab.id}`}
-                onClick={() => onSelectTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                onClick={() => {
+                  onSelectTab(tab.id);
+                  setShowMobileDrawer(false);
+                }}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all min-h-[42px] touch-manipulation ${
                   isActive
                     ? isDarkMode
                       ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 shadow-sm shadow-sky-500/10'
@@ -431,10 +579,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  <span className={`ml-0.5 sm:ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                     isActive ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'
                   }`}>
                     {tab.badge}

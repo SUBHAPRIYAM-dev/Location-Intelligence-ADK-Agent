@@ -112,21 +112,21 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({
         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
           {t.agent.suggestedPrompts}
         </span>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {suggestedScenarios.map((sc, i) => (
             <button
               key={i}
               id={`scenario-btn-${i}`}
               onClick={() => onSendMessage(sc.prompt)}
               disabled={isLoading || !canExecute}
-              className={`p-2 rounded-lg text-left text-xs border transition-all flex items-start gap-1.5 ${
+              className={`p-2 rounded-lg text-left text-xs border transition-all flex items-start gap-1.5 min-h-[38px] ${
                 isDarkMode 
                   ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-700 text-slate-200' 
                   : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800'
               } disabled:opacity-50`}
             >
-              <span className="text-sm">{sc.icon}</span>
-              <span className="text-[11px] font-medium leading-tight truncate">{sc.title}</span>
+              <span className="text-sm shrink-0">{sc.icon}</span>
+              <span className="text-[11px] font-medium leading-tight line-clamp-2">{sc.title}</span>
             </button>
           ))}
         </div>

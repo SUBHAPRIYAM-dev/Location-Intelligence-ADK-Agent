@@ -63,6 +63,7 @@ export default function App() {
   const [selectedPoint, setSelectedPoint] = useState<SpatialPoint | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<ClusterGroup | null>(null);
   const [isAgentPanelCollapsed, setIsAgentPanelCollapsed] = useState<boolean>(false);
+  const [mobileWorkspaceView, setMobileWorkspaceView] = useState<'map' | 'agent'>('map');
 
   // Agent Chat States
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([
@@ -386,39 +387,91 @@ export default function App() {
       <main className="flex-1 overflow-y-auto">
         {/* TAB 1: Geospatial Map Workspace + Location Intelligence ADK Agent Panel */}
         {currentTab === 'mapWorkspace' && (
-          <div className="flex flex-col lg:flex-row h-[calc(100vh-105px)] overflow-hidden">
-            {/* Map Canvas and Layer Engine */}
-            <div className={`relative transition-all duration-300 ${
-              isAgentPanelCollapsed ? 'flex-1' : 'flex-1 lg:w-7/12 xl:w-8/12'
-            }`}>
-              <MapWorkspace
-                points={points}
-                clusters={clusters}
-                anomalies={anomalies}
-                language={language}
-                isDarkMode={isDarkMode}
-                selectedPoint={selectedPoint}
-                onSelectPoint={setSelectedPoint}
-                onSelectCluster={setSelectedCluster}
-                onSelectAnomaly={() => setCurrentTab('anomalyCenter')}
-              />
-
-              {/* Agent Panel Toggle Button */}
-              <button
-                id="toggle-agent-sidebar-btn"
-                onClick={() => setIsAgentPanelCollapsed(!isAgentPanelCollapsed)}
-                className={`hidden lg:flex absolute top-4 z-20 p-2 rounded-xl border backdrop-blur-md shadow-lg transition-all ${
-                  isAgentPanelCollapsed ? 'right-4 bg-sky-600 text-white border-sky-400' : 'right-4 bg-slate-900/80 border-slate-700 text-slate-200'
-                }`}
-                title={isAgentPanelCollapsed ? 'Expand ADK Agent Console' : 'Collapse ADK Agent Console'}
-              >
-                {isAgentPanelCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
+          <div className="flex flex-col h-[calc(100vh-105px)] overflow-hidden">
+            {/* Mobile & Tablet Segmented View Switcher (< lg) */}
+            <div className="lg:hidden flex items-center justify-between px-3 py-1.5 border-b bg-slate-900/90 border-slate-800 text-xs shrink-0">
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-800/80 border border-slate-700/60 w-full">
+                <button
+                  id="mobile-view-map-btn"
+                  onClick={() => setMobileWorkspaceView('map')}
+                  className={`flex-1 py-1.5 px-2.5 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all text-xs min-h-[36px] ${
+                    mobileWorkspaceView === 'map'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <MapIcon className="h-3.5 w-3.5" />
+                  <span>Map Workspace</span>
+                </button>
+                <button
+                  id="mobile-view-agent-btn"
+                  onClick={() => setMobileWorkspaceView('agent')}
+                  className={`flex-1 py-1.5 px-2.5 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all text-xs min-h-[36px] relative ${
+                    mobileWorkspaceView === 'agent'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Bot className="h-3.5 w-3.5" />
+                  <span>ADK Agent</span>
+                  {agentMessages.length > 1 && (
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            {/* ADK Agent Command Center Panel */}
-            {!isAgentPanelCollapsed && (
-              <div className="w-full lg:w-5/12 xl:w-4/12 h-96 lg:h-full shrink-0 flex flex-col">
+            {/* Viewports container */}
+            <div className="flex-1 flex flex-col lg:flex-row h-[calc(100%-48px)] lg:h-full overflow-hidden">
+              {/* Map Canvas and Layer Engine */}
+              <div className={`relative transition-all duration-300 h-full ${
+                // On mobile/tablet, show only if active or on desktop
+                mobileWorkspaceView === 'map' ? 'flex-1 flex flex-col' : 'hidden lg:flex lg:flex-col'
+              } ${
+                isAgentPanelCollapsed ? 'lg:flex-1' : 'lg:w-7/12 xl:w-8/12'
+              }`}>
+                <MapWorkspace
+                  points={points}
+                  clusters={clusters}
+                  anomalies={anomalies}
+                  language={language}
+                  isDarkMode={isDarkMode}
+                  selectedPoint={selectedPoint}
+                  onSelectPoint={setSelectedPoint}
+                  onSelectCluster={setSelectedCluster}
+                  onSelectAnomaly={() => setCurrentTab('anomalyCenter')}
+                />
+
+                {/* Floating button on mobile to jump to Agent */}
+                <button
+                  onClick={() => setMobileWorkspaceView('agent')}
+                  className="lg:hidden absolute bottom-16 right-3 z-30 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-semibold text-xs shadow-xl flex items-center gap-1.5 border border-sky-400/40"
+                >
+                  <Bot className="h-4 w-4 animate-bounce" />
+                  <span>Ask Agent</span>
+                </button>
+
+                {/* Agent Panel Desktop Toggle Button */}
+                <button
+                  id="toggle-agent-sidebar-btn"
+                  onClick={() => setIsAgentPanelCollapsed(!isAgentPanelCollapsed)}
+                  className={`hidden lg:flex absolute top-4 z-20 p-2 rounded-xl border backdrop-blur-md shadow-lg transition-all ${
+                    isAgentPanelCollapsed ? 'right-4 bg-sky-600 text-white border-sky-400' : 'right-4 bg-slate-900/80 border-slate-700 text-slate-200'
+                  }`}
+                  title={isAgentPanelCollapsed ? 'Expand ADK Agent Console' : 'Collapse ADK Agent Console'}
+                >
+                  {isAgentPanelCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {/* ADK Agent Command Center Panel */}
+              <div className={`h-full shrink-0 flex flex-col ${
+                // On mobile/tablet: visible when agent view active
+                mobileWorkspaceView === 'agent' ? 'flex-1 w-full' : 'hidden'
+              } ${
+                // On desktop: visible when not collapsed
+                !isAgentPanelCollapsed ? 'lg:flex lg:w-5/12 xl:w-4/12' : 'lg:hidden'
+              }`}>
                 <AgentPanel
                   messages={agentMessages}
                   onSendMessage={handleSendMessage}
@@ -428,7 +481,7 @@ export default function App() {
                   isDarkMode={isDarkMode}
                 />
               </div>
-            )}
+            </div>
           </div>
         )}
 

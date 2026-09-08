@@ -192,7 +192,7 @@ export const AnomalyAlertsCenter: React.FC<AnomalyAlertsCenterProps> = ({
         {/* Deep Anomaly Inspector (5 cols) */}
         <div className="lg:col-span-5">
           {selectedAnomaly ? (
-            <div className={`p-5 rounded-2xl border shadow-xl sticky top-24 space-y-4 ${
+            <div className={`p-4 sm:p-5 rounded-2xl border shadow-xl lg:sticky lg:top-24 space-y-4 ${
               isDarkMode ? 'bg-slate-900/90 border-slate-700/80' : 'bg-white border-slate-200'
             }`}>
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
